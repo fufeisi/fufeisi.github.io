@@ -60,6 +60,7 @@
 
   const deviceId = loadOrCreateDeviceId();
   let historyItems = loadHistory();
+  let historyExpiryTimer = null;
 
   function makeDeviceId() {
     if (window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
@@ -107,6 +108,25 @@
     catch (_) { /* The current page still keeps the history in memory if browser storage is unavailable. */ }
   }
 
+  function scheduleHistoryExpiry() {
+    if (historyExpiryTimer !== null) window.clearTimeout(historyExpiryTimer);
+    historyExpiryTimer = null;
+    if (!historyItems.length) return;
+    const nextExpiry = historyItems.reduce((earliest, item) => Math.min(earliest, item.timestamp + HISTORY_TTL_MS), Infinity);
+    const delay = Math.max(1, nextExpiry - Date.now() + 1);
+    historyExpiryTimer = window.setTimeout(() => {
+      historyExpiryTimer = null;
+      const previousCount = historyItems.length;
+      historyItems = pruneHistory(historyItems);
+      if (historyItems.length !== previousCount) {
+        persistHistory();
+        renderHistory();
+      } else {
+        scheduleHistoryExpiry();
+      }
+    }, delay);
+  }
+
   function recordCompletedHistory() {
     if (state.historyRecordedHand === state.handNumber) return;
     state.historyRecordedHand = state.handNumber;
@@ -134,6 +154,7 @@
     const now = Date.now();
     historyItems = pruneHistory(historyItems, now);
     persistHistory();
+    scheduleHistoryExpiry();
     ui.deviceId.textContent = deviceId.slice(0, 8).toUpperCase();
     ui.historyCount.textContent = String(historyItems.length);
     const fullResults = historyItems.filter((item) => Number.isFinite(item.netBb));
