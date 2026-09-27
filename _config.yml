@@ -1,6 +1,6 @@
-title: "Feisi Fu's Homepage"
+title: "Feisi Fu"
 author: "Feisi Fu"
-description: "External Links"
+description: "Links"
 permalink: /:title/
 lang: "en"
 excerpt_separator: "\n\n\n"
@@ -16,14 +16,15 @@ minimal: false            # use a dark header
 # Menu
 
 navigation:                # accepts {file, title, url, icon, sidebaricon}
-  - {title: "CV", url: "http://fufeisi.github.io/FeisiFuCV.pdf"}
+  - {title: "CV", url: "/FeisiFuCV.pdf"}
   - {file: "publications.md", title: "Publications"}
   - {file: "updates.md", title: "News"}
 
 external:                  # shows a footer with social links - for available icons see fontawesome.com/icons
-  - {title: Mail, icon: envelope, url: "mailto:fufeisi@bu.edu"}
-  - {title: Linkedin, icon: linkedin-in, url: "https://www.linkedin.com/in/feisifu/"}
-  - {title: Google Scholar, icon: graduation-cap, url: "https://scholar.google.com/citations?user=9wJGIOoAAAAJ"}
+  - {title: "Email: fufeisi2023@gmail.com", url: "mailto:fufeisi2023@gmail.com"}
+  - {title: "Phone: 857-869-0444", url: "tel:+18578690444"}
+  - {title: LinkedIn, url: "https://www.linkedin.com/in/feisifu/"}
+  - {title: Google Scholar, url: "https://scholar.google.com/citations?user=9wJGIOoAAAAJ"}
 
 comments:
 #  disqus_shortname: ""    # see https://disqus.com/

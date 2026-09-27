@@ -1,35 +1,59 @@
 ---
 layout: page
 title: "News"
+back_to_home: true
 ---
-[2023/12] Our paper **REGLO: Provable Neural Network Repair for Global Robustness Properties** has been accepted at **AAAI Conference on Artificial Intelligence (AAAI), 2024**
 
-[2023/09] I joined **<a href="https://www.bytedance.com/en/" target="_blank">Bytedance</a>** as a research intern in Machine Learning Infra Team.
+<section class="news-section">
+  <h2>Work Experience</h2>
+  <ul class="news-timeline">
+    <li>
+      <time class="news-date" datetime="2024-04">Apr 2024</time>
+      <div class="news-entry"><strong>Machine Learning Engineer</strong><p>Joined TikTok's E-commerce Search team, working on retrieval and relevance models.</p></div>
+    </li>
+    <li>
+      <span class="news-date">Sep-Nov 2023</span>
+      <div class="news-entry"><strong>Machine Learning Engineer Intern</strong><p>TikTok Infrastructure team.</p></div>
+    </li>
+    <li>
+      <time class="news-date" datetime="2022-08">Aug 2022</time>
+      <div class="news-entry"><strong>Research Scientist Intern</strong><p>Meta, PyTorch Architecture Optimization team.</p></div>
+    </li>
+  </ul>
+</section>
 
-[2023/08] Our paper **Dormant Neural Trojans** has been accepted as a long paper at **International Conference on Machine Learning and Applications (IEEE ICMLA), 2023**.
+<section class="news-section">
+  <h2>Education</h2>
+  <ul class="news-timeline">
+    <li>
+      <time class="news-date" datetime="2024">2024</time>
+      <div class="news-entry"><strong>Ph.D. in Systems Engineering</strong><p>Boston University.</p></div>
+    </li>
+    <li>
+      <time class="news-date" datetime="2018-07">Jul 2018</time>
+      <div class="news-entry"><strong>M.S. in Mathematics</strong><p>University of Chinese Academy of Sciences.</p></div>
+    </li>
+    <li>
+      <time class="news-date" datetime="2014-07">Jul 2014</time>
+      <div class="news-entry"><strong>B.S. in Mathematics with distinction</strong><p>Sichuan University.</p></div>
+    </li>
+  </ul>
+</section>
 
-[2022/11] I have a new paper Dormant Neural Trojans [<a href="https://arxiv.org/abs/2211.01808" target="_blank">PDF</a>].
-
-[2022/10] Our paper **REGLO: Provable Neural Network Repair for Global Robustness Properties** has been accepted as a workshop paper at **Neural Information Processing Systems (NeurIPS), 2022**.
-
-[2022/08] I joined **<a href="https://about.meta.com" target="_blank">Meta</a>** as a research scientist intern in **<a href="https://pytorch.org/docs/stable/quantization.html" target="_blank">PyTorch Architecture Optimization Team</a>**.
-
-[2022/08] I have a new paper A Tool for Neural Network Global Robustness Certification and Training [<a href="https://arxiv.org/abs/2208.07289" target="_blank">PDF</a>].
-
-[2022/01] Our paper **Sound and Complete Neural Network Repair with Minimality and Locality Guarantees** [<a href="https://arxiv.org/abs/2110.07682" target="_blank">PDF</a>] is accepted as a poster paper at **International Conference on Learning Representations (ICLR), 2022**.
-
-[2021/10] I have a new paper “Sound and Complete Neural Network Repair with Minimality and Locality Guarantees” [<a href="https://arxiv.org/abs/2110.07682" target="_blank">PDF</a>].
-
-[2020/09] I worked as a Graduate Teaching Fellow for Optimization Theory and Methods (<a href="https://www.bu.edu/academics/eng/courses/eng-se-524/" target="_blank">ENG SE524</a>, <a href="https://www.bu.edu" target="_blank">Boston University</a>).
-
-[2019/09] I worked as a Graduate Teaching Fellow for Optimization Theory and Methods (<a href="https://www.bu.edu/academics/eng/courses/eng-se-524/" target="_blank">ENG SE524</a>, <a href="https://www.bu.edu" target="_blank">Boston University</a>).
-
-[2019/06] I joined **<a href="https://sites.bu.edu/depend/" target="_blank">Dependable Computing Lab</a> as a Ph.D. student supervised by <a href="https://www.bu.edu/eng/profile/39799/" target="_blank"> Prof. Wenchao Li </a>**.
-
-[2019/05] I completed Boston University Systems Engineering PhD Qualifying Exam and became a Ph.D candidate of <a href="https://www.bu.edu/eng/departments/se/" target="_blank">Systems Engineering</a>, <a href="https://www.bu.edu" target="_blank">Boston University</a>.
-
-[2018/07] I graduated from <a href="http://english.amss.cas.cn" target="_blank">Academy of Mathematics and Systems Science</a>, <a href="https://english.ucas.ac.cn" target="_blank">University of Chinese Academy of Sciences</a> and got the degree of **M.S. on research area <a href="https://en.wikipedia.org/wiki/Algebraic_geometry" target="_blank">Algebraic Geometry</a>**.
-
-[2018/03] I got admission to the PhD program in <a href="https://www.bu.edu/eng/departments/se/" target="_blank">Systems Engineering</a> at <a href="https://www.bu.edu" target="_blank">Boston University</a>.
-
-[2014/07] I graduated from <a href="https://math.scu.edu.cn/English.htm" target="_blank">College of Mathematics</a>, <a href="https://en.scu.edu.cn" target="_blank">Sichuan University</a> and got the degree of **B.S. of Mathematics with distinction**.
+<section class="news-section">
+  <h2>Selected Papers</h2>
+  <ul class="news-papers">
+    <li>
+      <time datetime="2024">2024</time>
+      <div><a href="https://openreview.net/pdf?id=FRTXdodwsoA" target="_blank" rel="noopener noreferrer">REGLO: Provable Neural Network Repair for Global Robustness Properties</a><p>Accepted at AAAI 2024.</p></div>
+    </li>
+    <li>
+      <time datetime="2023">2023</time>
+      <div><a href="https://arxiv.org/abs/2211.01808" target="_blank" rel="noopener noreferrer">Dormant Neural Trojans</a><p>Accepted as a long paper at IEEE ICMLA 2023.</p></div>
+    </li>
+    <li>
+      <time datetime="2022">2022</time>
+      <div><a href="https://arxiv.org/abs/2110.07682" target="_blank" rel="noopener noreferrer">Sound and Complete Neural Network Repair with Minimality and Locality Guarantees</a><p>Accepted as a poster at ICLR 2022.</p></div>
+    </li>
+  </ul>
+</section>

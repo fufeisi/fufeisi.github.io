@@ -11,8 +11,45 @@ body > header, body > footer
   align-items: center
   justify-content: space-between
 
+body > footer
+  gap: 1rem 2rem
+  flex-wrap: nowrap
+  align-items: flex-start
+  box-sizing: border-box
+  min-width: 0
+  width: 100%
+
+body > footer .footer-group
+  flex: 1 1 40%
+  min-width: 0
+
+body > footer .footer-primary
+  flex: 0 0 auto
+
+body > footer .footer-secondary
+  flex: 1 1 auto
+
+body > footer .footer-group nav
+  display: flex
+  flex-wrap: wrap
+  align-items: center
+  gap: .55rem 1.4rem
+  margin: 0
+
+body > footer .footer-group nav a
+  margin: 0
+  white-space: nowrap
+
+body > footer .footer-secondary nav
+  justify-content: flex-end
+  gap: .55rem .8rem
+
 body > header, body > article, body > footer
   padding: 1.5em
+
+body > footer
+  padding-left: unquote("max(1.5rem, calc(50% - 32rem))")
+  padding-right: unquote("max(1.5rem, calc(50% - 32rem))")
 
 article header
   margin-bottom: 1.5em
@@ -21,8 +58,119 @@ article header h1
   font-size: 1.7em
   margin: 0 0 .1em
 
+article > nav.page-home-nav
+  display: flex
+  margin: 0 0 1.15rem
+  font-size: .9rem
+  font-weight: 600
+
+article > nav.page-home-nav a
+  margin: 0
+
+.publication-list
+  margin-top: .25rem
+
+.publication-entry
+  padding: 1.1rem 0
+  border-bottom: 1px solid reduce(14)
+
+.publication-entry:first-child
+  border-top: 1px solid reduce(14)
+
+.publication-entry:last-child
+  border-bottom: 0
+
+.publication-entry h2
+  margin: 0 0 .35rem
+  font-size: 1.08rem
+  line-height: 1.4
+
+.publication-entry p
+  margin: .25rem 0 0
+  line-height: 1.55
+
+.publication-entry .publication-authors,
+.publication-entry .publication-venue
+  font-size: .91rem
+  opacity: .78
+
+.publication-pdf
+  margin-left: .35rem
+  font-size: .78em
+  font-weight: 600
+  white-space: nowrap
+
+.news-section
+  margin-top: 1.8rem
+
+.news-section:first-of-type
+  margin-top: 0
+
+.news-section h2
+  margin: 0 0 .65rem
+  padding-left: .7rem
+  border-left: 3px solid #11877f
+  font-size: 1.25rem
+  line-height: 1.25
+
+.news-timeline,
+.news-papers
+  margin: 0
+  padding: 0
+  list-style: none
+
+.news-timeline li,
+.news-papers li
+  display: grid
+  grid-template-columns: minmax(7rem, 9rem) minmax(0, 1fr)
+  gap: 1rem
+  padding: .75rem 0
+  border-bottom: 1px solid reduce(12)
+
+.news-timeline li:last-child,
+.news-papers li:last-child
+  border-bottom: 0
+
+.news-date,
+.news-papers time
+  font-size: .9rem
+  font-weight: 600
+  font-variant-numeric: tabular-nums
+  opacity: .72
+
+.news-entry p,
+.news-papers p
+  margin: .2rem 0 0
+  font-size: .94rem
+  line-height: 1.5
+
+.news-papers time
+  padding-top: .1rem
+
 nav
   margin: .5em -1.2em
 
 nav a
   margin: .5em 1.2em
+
+@media (max-width: 36rem)
+  body > footer
+    flex-direction: column
+    align-items: flex-start
+    padding-left: 1rem
+    padding-right: 1rem
+
+  body > footer .footer-group
+    flex: 0 1 auto
+    width: 100%
+
+  body > footer .footer-secondary nav
+    justify-content: flex-start
+
+  .news-timeline li,
+  .news-papers li
+    grid-template-columns: minmax(0, 1fr)
+    gap: .15rem
+
+  .news-date
+    font-size: .82rem

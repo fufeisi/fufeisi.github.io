@@ -1,33 +1,49 @@
 ---
-layout: page
-title: 
+layout: default
+home: true
 ---
 
-<div style="clear: both;">
-  <div style="float: left; margin-right:20px;">
-    <img src="Feisi_Fu.JPG" alt="" width="230" height="230">
-  </div>
-  <div>
-    <h1> Feisi Fu </h1>
-    
-    <h3> Ph.D candidate of <a href="https://www.bu.edu/eng/departments/se/" target="_blank">Systems Engineering</a>, <a href="https://www.bu.edu" target="_blank">Boston University</a> </h3>
-    
-    <p> <strong>Advisor:</strong> <a href="https://www.bu.edu/eng/profile/39799/" target="_blank"> Prof. Wenchao Li </a> </p>
-    
-    <p> <strong>Research Interests:
-       <p>
-       &nbsp; Neural Network Post-training
-       <br> &nbsp; Trustworthy A.I.
-       <br> &nbsp; Neural Network Quantization
-       </p></strong>
-     </p>
-     <br>
-<h3> <strong>Selected Papers:</strong> </h3>
-</div>
-</div>
-* **Sound and Complete Neural Network Repair with Minimality and Locality Guarantees** [<a href="https://arxiv.org/abs/2110.07682" target="_blank">PDF</a>]
-  <br> Feisi Fu, Wenchao Li
-  <br> Accept as a poster paper at **International Conference on Learning Representations (ICLR), 2022**. 
-* **REGLO: Provable Neural Network Repair for Global Robustness Properties** [<a href="https://openreview.net/pdf?id=FRTXdodwsoA" target="_blank">PDF</a>]
-  <br> Feisi Fu, Zhilu Wang, Jiameng Fan, Yixuan Wang, Chao Huang, Qi Zhu, Xin Chen, Wenchao Li
-  <br> Accepted at **AAAI Conference on Artificial Intelligence (AAAI), 2024**. 
+<main class="home-page">
+  <section class="home-profile" aria-label="Profile">
+    <img class="home-portrait" src="/Feisi_Fu.JPG" alt="Portrait of Feisi Fu" width="256" height="256">
+    <div class="home-intro">
+      <h1>Feisi Fu</h1>
+      <p class="home-role">Machine Learning Engineer<br><span>TikTok E-commerce Search</span></p>
+      <p class="home-tenure">Apr 2024 - Present</p>
+    </div>
+
+    <aside class="home-interests" aria-labelledby="interests-title">
+      <h2 id="interests-title">Beyond Work</h2>
+      <ul>
+        <li>
+          <span class="home-hobby-icon home-hobby-ski" aria-hidden="true"><svg><use xlink:href="/assets/fontawesome/icons.svg#skiing"></use></svg></span>
+          <span>Skiing</span>
+        </li>
+        <li>
+          <span class="home-hobby-icon home-hobby-sail" aria-hidden="true"><svg><use xlink:href="/assets/fontawesome/icons.svg#ship"></use></svg></span>
+          <span>Sailing</span>
+        </li>
+        <li>
+          <span class="home-hobby-icon home-hobby-poker" aria-hidden="true"><svg><use xlink:href="/assets/fontawesome/icons.svg#clone"></use></svg></span>
+          <span>Texas Hold'em Poker</span>
+        </li>
+      </ul>
+    </aside>
+
+  </section>
+
+  <section class="home-experience" aria-labelledby="current-work-title">
+    <h2 id="current-work-title">Current Work</h2>
+    <div class="home-work-grid">
+      <section class="home-work-item">
+        <h3>Recall Models</h3>
+        <p>Built a high-throughput retrieval system handling 1K+ QPS for e-commerce search, retrieving relevant products, videos, and LIVE shopping streams for personalized queries and feeding candidates into downstream ranking models.</p>
+      </section>
+      <section class="home-work-item">
+        <h3>Relevance Models</h3>
+        <p>Developed SLM-based relevance models for e-commerce search ranking to predict TikTok Shop product relevance through deep semantic understanding of query-item similarity, surfacing products that better match user search intent.</p>
+      </section>
+    </div>
+  </section>
+
+</main>

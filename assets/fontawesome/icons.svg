@@ -17,4 +17,9 @@ License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL
   <symbol id="{{ icon }}" viewBox="0 0 {{ svg[1].width }} {{ svg[1].height }}"><path d="{{ svg[1].path }}" /></symbol>
 {% endfor %}
 {% endfor %}
+{% assign hobby_icons = 'skiing,ship,clone' | split: ',' %}
+{% for icon in hobby_icons %}
+  {% assign svg = site.data.font-awesome.icons[icon].svg | first %}
+  <symbol id="{{ icon }}" viewBox="0 0 {{ svg[1].width }} {{ svg[1].height }}"><path d="{{ svg[1].path }}" /></symbol>
+{% endfor %}
 </svg>
