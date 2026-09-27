@@ -12,7 +12,7 @@ body > header, body > footer
   justify-content: space-between
 
 body > footer
-  gap: 1rem 2rem
+  gap: 1rem 1.25rem
   flex-wrap: nowrap
   align-items: flex-start
   box-sizing: border-box
@@ -42,7 +42,7 @@ body > footer .footer-group nav a
 
 body > footer .footer-secondary nav
   justify-content: flex-end
-  gap: .55rem .8rem
+  gap: .55rem .35rem
 
 body > header, body > article, body > footer
   padding: 1.5em
@@ -153,12 +153,10 @@ nav
 nav a
   margin: .5em 1.2em
 
-@media (max-width: 36rem)
+@media (max-width: 64rem)
   body > footer
     flex-direction: column
     align-items: flex-start
-    padding-left: 1rem
-    padding-right: 1rem
 
   body > footer .footer-group
     flex: 0 1 auto
@@ -166,6 +164,11 @@ nav a
 
   body > footer .footer-secondary nav
     justify-content: flex-start
+
+@media (max-width: 36rem)
+  body > footer
+    padding-left: 1rem
+    padding-right: 1rem
 
   .news-timeline li,
   .news-papers li
