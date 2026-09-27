@@ -33,6 +33,8 @@
     preflopFilter: byId('preflop-filter'), preflopRange: byId('preflop-extra'),
     rangeExtraValue: byId('range-extra-value'), rangePosition: byId('range-position'),
     rangeBase: byId('range-base'), rangeCurrent: byId('range-current'),
+    opponentLooseness: byId('opponent-looseness'), opponentAggression: byId('opponent-aggression'),
+    opponentLoosenessValue: byId('opponent-looseness-value'), opponentAggressionValue: byId('opponent-aggression-value'),
     nextHand: byId('next-hand'), handCount: byId('hands'), accuracy: byId('accuracy'),
     sessionResult: byId('session-result'), nodeDetails: byId('node-details'),
     decisionBox: byId('decision-box'), strategyTitle: byId('strategy-title'),
@@ -47,7 +49,7 @@
     currentReview: null, resultText: '', actionLog: [], aiStyles: null, playerStats: {},
     decisions: 0, matchedFrequencyTotal: 0, sessionNet: 0, completedHands: 0,
     lastAggressor: null, spotDecisionOnly: false, handStartStack: 100,
-    preflopExtraPercent: 0
+    preflopExtraPercent: 0, opponentLoosenessLevel: 4, opponentAggressionLevel: 4
   };
 
   function randomInt(max) {
@@ -115,20 +117,19 @@
     }
   }
 
+  function sampleAIStyles() {
+    const looseSteps = state.opponentLoosenessLevel - 1;
+    const aggressiveSteps = state.opponentAggressionLevel - 1;
+    return Array.from({ length: 5 }, () => {
+      const loose = randomInt(6) < looseSteps;
+      const aggressive = randomInt(6) < aggressiveSteps;
+      const key = `${loose ? 'loose' : 'tight'}-${aggressive ? 'aggressive' : 'passive'}`;
+      return AI_STYLES.find((style) => style.key === key);
+    });
+  }
+
   function makePlayers(stack) {
-    if (!state.aiStyles) {
-      const pool = AI_STYLES.slice();
-      for (let index = pool.length - 1; index > 0; index -= 1) {
-        const swapIndex = randomInt(index + 1);
-        [pool[index], pool[swapIndex]] = [pool[swapIndex], pool[index]];
-      }
-      pool.push(AI_STYLES[randomInt(AI_STYLES.length)]);
-      for (let index = pool.length - 1; index > 0; index -= 1) {
-        const swapIndex = randomInt(index + 1);
-        [pool[index], pool[swapIndex]] = [pool[swapIndex], pool[index]];
-      }
-      state.aiStyles = pool.slice(0, 5);
-    }
+    state.aiStyles = sampleAIStyles();
     const names = [BOT_NAMES[0], BOT_NAMES[1], BOT_NAMES[2], HUMAN_NAME, BOT_NAMES[3], BOT_NAMES[4]];
     let botIndex = 0;
     state.players = names.map((name, seat) => ({
@@ -629,6 +630,17 @@
     ui.rangePosition.textContent = position === 'BB' ? 'BB · 防守后位开池' : `${position} · 开池`;
     ui.rangeBase.textContent = percentageText(profile.baseMass / 1326 * 100);
     ui.rangeCurrent.textContent = percentageText(profile.totalMass / 1326 * 100);
+  }
+
+  function renderOpponentStyleFilter() {
+    const looseness = state.opponentLoosenessLevel;
+    const aggression = state.opponentAggressionLevel;
+    const loosePercent = Math.round((looseness - 1) / 6 * 100);
+    const aggressivePercent = Math.round((aggression - 1) / 6 * 100);
+    ui.opponentLooseness.value = String(looseness);
+    ui.opponentAggression.value = String(aggression);
+    ui.opponentLoosenessValue.textContent = `${loosePercent}% · ${looseness}/7`;
+    ui.opponentAggressionValue.textContent = `${aggressivePercent}% · ${aggression}/7`;
   }
 
   function fullhouseDefenseDistribution(openerPosition, defenderPosition, hand) {
@@ -1483,6 +1495,7 @@
     renderControls();
     renderFeedback();
     renderPreflopFilter();
+    renderOpponentStyleFilter();
     if (state.handComplete) ui.tableStatus.innerHTML = `<strong>${state.resultText}</strong>`;
     else if (state.currentActor === heroPlayer.id) {
       const due = currentToCall(heroPlayer);
@@ -1523,6 +1536,14 @@
       state.preflopExtraPercent = Number(ui.preflopRange.value) || 0;
       renderPreflopFilter();
     });
+    ui.opponentLooseness.addEventListener('input', () => {
+      state.opponentLoosenessLevel = clamp(Number(ui.opponentLooseness.value) || 4, 1, 7);
+      renderOpponentStyleFilter();
+    });
+    ui.opponentAggression.addEventListener('input', () => {
+      state.opponentAggressionLevel = clamp(Number(ui.opponentAggression.value) || 4, 1, 7);
+      renderOpponentStyleFilter();
+    });
     document.querySelectorAll('.mode-button').forEach((button) => button.addEventListener('click', () => {
       if (button.dataset.mode === state.mode) return;
       document.querySelectorAll('.mode-button').forEach((item) => {
@@ -1560,6 +1581,10 @@
             : ['fold', ...(due > 0.001 ? ['call'] : ['check']), ...((!state.actedSinceFullRaise.has(player.id) && player.chips > due && player.streetBet + player.chips > state.currentBet) ? [state.currentBet > 0 ? 'raise' : 'bet'] : [])];
           return {
             mode: modeName(), handNumber: state.handNumber, street: streetName(state.street),
+            opponentStyleMix: {
+              loosePercent: Math.round((state.opponentLoosenessLevel - 1) / 6 * 100),
+              aggressivePercent: Math.round((state.opponentAggressionLevel - 1) / 6 * 100)
+            },
             hero: { position: player.position, cards: player.cards.map(cardText), stackBb: player.chips },
             board: state.board.map(cardText), potBb: sumPot(), toCallBb: due,
             humanToAct: state.humanTurn, availableActions,

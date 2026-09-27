@@ -116,6 +116,25 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
 .range-meta span:last-child { color: var(--muted); }
 .range-meta b { color: var(--text); font-variant-numeric: tabular-nums; }
 .app.postflop-mode .range-filter { display: none; }
+.opponent-style-filter {
+  width: min(550px, 58%);
+  margin-left: auto;
+  padding: 7px 10px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid #ffffff15;
+  border-radius: 11px;
+  background: #171d1a;
+}
+.style-filter-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.style-filter-title { color: #d4ddd3; font-size: 10px; font-weight: 750; }
+.style-filter-note { color: #748278; font-size: 9px; white-space: nowrap; }
+.style-filter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.style-axis { min-width: 0; display: grid; gap: 1px; }
+.style-axis-heading { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 4px; color: var(--muted); font-size: 10px; }
+.style-axis-heading output { color: var(--lime); font-size: 9px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.style-axis-control { min-width: 0; display: grid; grid-template-columns: 15px minmax(0, 1fr) 15px; align-items: center; gap: 3px; color: var(--muted); font-size: 8px; text-align: center; }
+.style-range { width: 100%; min-width: 0; height: 24px; margin: 0; accent-color: var(--lime); cursor: pointer; touch-action: pan-x; }
 
 .layout { min-height: 0; flex: 1; display: flex; flex-direction: column; gap: 10px; }
 .panel { border: 1px solid var(--line); border-radius: 15px; background: var(--surface); }
@@ -241,7 +260,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
 .ai-style-tag { padding: 2px 5px; border: 1px solid #617c4d; border-radius: 6px; background: #33442b; color: var(--lime); font-size: 10px; font-weight: 800; line-height: 1.2; }
 .seat-position { color: #c1cec2; font-size: 10px; font-weight: 600; }
 .seat .stack { padding: 1px 7px; color: white; font-size: 13px; font-weight: 750; font-variant-numeric: tabular-nums; text-shadow: 0 1px 4px #0009; }
-.seat-state { max-width: 155px; padding: 2px 7px; border-radius: 7px; background: #101713c9; color: #ecdfb7; font-size: 10px; line-height: 1.35; }
+.seat-state { max-width: 155px; padding: 3px 8px; border-radius: 7px; background: #101713c9; color: #ecdfb7; font-size: 12px; line-height: 1.35; white-space: nowrap; }
 .seat .bet-chip { position: static; padding: 2px 7px; transform: none; border: 1px solid #e8d38a66; border-radius: 999px; background: #533f18e8; color: #fff0b5; white-space: nowrap; font-size: 10px; font-weight: 750; }
 .seat .mini-cards { margin-top: 1px; display: flex; gap: 4px; }
 .seat .mini-cards .card { width: 50px; height: 70px; border-radius: 6px; }
@@ -339,6 +358,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
   .wrap { padding-right: 13px; padding-left: 13px; }
   .table-panel { height: clamp(470px, 68vh, 650px); min-height: 470px; }
   .range-filter { min-width: 360px; grid-template-columns: 74px minmax(70px, 1fr) 162px; gap: 7px; }
+  .opponent-style-filter { width: min(550px, 100%); }
   .feedback { grid-template-columns: 115px 1fr 1fr; }
   .feedback > div:nth-of-type(4) { grid-column: 2 / -1; }
   .seat { min-width: 140px; }
@@ -371,6 +391,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
   .range-label output { font-size: 12px; }
   .range-slider { height: 38px; }
   .range-meta { font-size: 9px; }
+  .opponent-style-filter { width: 100%; margin-left: 0; padding: 6px 8px; gap: 3px; }
+  .style-filter-grid { gap: 8px; }
+  .style-filter-title { font-size: 9px; }
+  .style-filter-note { font-size: 8px; }
+  .style-axis-heading { font-size: 9px; }
+  .style-axis-heading output { font-size: 8px; }
+  .style-axis-control { grid-template-columns: 14px minmax(0, 1fr) 14px; }
+  .style-range { height: 30px; }
   .layout { flex: none; gap: 9px; }
   .table-panel { height: clamp(420px, 116vw, 500px); min-height: 0; flex: none; border-radius: 15px; }
   .table-top { top: 10px; left: 10px; right: 10px; font-size: 10px; }
@@ -399,7 +427,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
   .ai-style-tag { padding: 1px 3px; font-size: 8px; }
   .seat-position { font-size: 8px; }
   .seat .stack { padding: 0 3px; font-size: 10px; }
-  .seat-state, .seat .bet-chip { max-width: 100px; padding: 1px 4px; font-size: 8px; }
+  .seat-state { max-width: 108px; padding: 2px 5px; font-size: 9px; }
+  .seat .bet-chip { max-width: 100px; padding: 1px 4px; font-size: 8px; }
   .seat .mini-cards { gap: 2px; }
   .seat .mini-cards .card { width: 30px; height: 42px; border-radius: 4px; }
   .seat .mini-cards .card-rank { top: 3px; left: 4px; font-size: 10px; }
