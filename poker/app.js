@@ -117,12 +117,24 @@
     }
   }
 
+  function sampleTraitSeats(level) {
+    // Random rounding keeps five seats close to the configured share at every notch.
+    const expectedCount = ((level - 1) / 6) * 5;
+    const count = Math.floor(expectedCount) + Number(randomInt(6) < Math.round((expectedCount % 1) * 6));
+    const seats = [0, 1, 2, 3, 4];
+    for (let index = seats.length - 1; index > 0; index -= 1) {
+      const swapIndex = randomInt(index + 1);
+      [seats[index], seats[swapIndex]] = [seats[swapIndex], seats[index]];
+    }
+    return new Set(seats.slice(0, count));
+  }
+
   function sampleAIStyles() {
-    const looseSteps = state.opponentLoosenessLevel - 1;
-    const aggressiveSteps = state.opponentAggressionLevel - 1;
-    return Array.from({ length: 5 }, () => {
-      const loose = randomInt(6) < looseSteps;
-      const aggressive = randomInt(6) < aggressiveSteps;
+    const looseSeats = sampleTraitSeats(state.opponentLoosenessLevel);
+    const aggressiveSeats = sampleTraitSeats(state.opponentAggressionLevel);
+    return Array.from({ length: 5 }, (_, index) => {
+      const loose = looseSeats.has(index);
+      const aggressive = aggressiveSeats.has(index);
       const key = `${loose ? 'loose' : 'tight'}-${aggressive ? 'aggressive' : 'passive'}`;
       return AI_STYLES.find((style) => style.key === key);
     });
