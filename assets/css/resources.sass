@@ -10,7 +10,7 @@ $muted: #617278
 
 .resource-grid
   display: grid
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr))
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr))
   gap: 1rem
   margin: 1.75rem 0 0
 
@@ -78,6 +78,7 @@ $muted: #617278
 
 @media (max-width: 40rem)
   .resource-grid
+    grid-template-columns: 1fr
     margin-top: 1.25rem
 
   .resource-card
