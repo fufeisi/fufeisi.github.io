@@ -395,7 +395,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
   .seat-5 { bottom: 5%; left: 10%; }
   .seat-6 { top: 41%; left: 1%; }
   .seat .nameplate { min-height: 25px; max-width: 112px; padding: 3px 4px; gap: 3px; border-radius: 8px; font-size: 9px; }
-  .seat.acting::before { top: -11px; padding: 2px 5px; font-size: 8px; }
   .seat:not(.hero) .seat-name { display: none; }
   .ai-style-tag { padding: 1px 3px; font-size: 8px; }
   .seat-position { font-size: 8px; }
