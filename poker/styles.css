@@ -260,7 +260,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
 .ai-style-tag { padding: 2px 5px; border: 1px solid #617c4d; border-radius: 6px; background: #33442b; color: var(--lime); font-size: 10px; font-weight: 800; line-height: 1.2; }
 .seat-position { color: #c1cec2; font-size: 10px; font-weight: 600; }
 .seat .stack { padding: 1px 7px; color: white; font-size: 13px; font-weight: 750; font-variant-numeric: tabular-nums; text-shadow: 0 1px 4px #0009; }
-.seat-state { max-width: 155px; padding: 3px 8px; border-radius: 7px; background: #101713c9; color: #ecdfb7; font-size: 12px; line-height: 1.35; white-space: nowrap; }
+.seat-state { max-width: 155px; padding: 3px 8px; border-radius: 7px; background: #101713c9; color: #ecdfb7; font-size: 12px; font-weight: 700; line-height: 1.35; white-space: nowrap; }
 .seat .bet-chip { position: static; padding: 2px 7px; transform: none; border: 1px solid #e8d38a66; border-radius: 999px; background: #533f18e8; color: #fff0b5; white-space: nowrap; font-size: 10px; font-weight: 750; }
 .seat .mini-cards { margin-top: 1px; display: flex; gap: 4px; }
 .seat .mini-cards .card { width: 50px; height: 70px; border-radius: 6px; }
