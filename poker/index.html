@@ -56,6 +56,15 @@
         </aside>
       </div>
       <div class="session-footer"><span class="footer-note" id="footer-note">模拟现金局 · 筹码以大盲注（bb）显示</span><button class="next-hand" id="next-hand">发下一手 <span aria-hidden="true">→</span></button></div>
+      <section class="panel history-panel" aria-labelledby="history-title">
+        <div class="history-heading"><div><h2 id="history-title">近 7 天记录</h2><p>本机浏览器保存 · 7 天后自动过期</p></div><span class="device-badge">设备 <b id="device-id">—</b></span></div>
+        <div class="history-summary" aria-label="近七天汇总">
+          <span>完成记录 <b id="history-count">0</b></span>
+          <span>整手净变化 <b id="history-net" data-result="even">0 bb</b></span>
+          <span>平均策略匹配 <b id="history-match">—</b></span>
+        </div>
+        <ol class="history-list" id="history-list" aria-live="polite"></ol>
+      </section>
     </main>
   </div>
   <script src="fullhouse-ranges.js"></script>

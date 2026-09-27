@@ -13,6 +13,9 @@
   const BOT_NAMES = ['RiverBot', 'Moss', 'Cobalt', 'Juniper', 'North'];
   const HUMAN_NAME = '你';
   const DEFAULT_STACK = 100;
+  const HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+  const DEVICE_ID_KEY = 'riverlab:poker:device-id:v1';
+  const HISTORY_KEY_PREFIX = 'riverlab:poker:history:v1:';
   const AI_STYLES = [
     { key: 'tight-passive', label: '紧弱', tightness: 0.08, aggression: -0.16 },
     { key: 'tight-aggressive', label: '紧凶', tightness: 0.08, aggression: 0.18 },
@@ -39,7 +42,9 @@
     sessionResult: byId('session-result'), nodeDetails: byId('node-details'),
     decisionBox: byId('decision-box'), strategyTitle: byId('strategy-title'),
     strategyList: byId('strategy-list'), feedbackState: byId('feedback-state'),
-    footerNote: byId('footer-note')
+    footerNote: byId('footer-note'), deviceId: byId('device-id'),
+    historyCount: byId('history-count'), historyNet: byId('history-net'),
+    historyMatch: byId('history-match'), historyList: byId('history-list')
   };
 
   const state = {
@@ -49,8 +54,130 @@
     currentReview: null, resultText: '', actionLog: [], aiStyles: null, playerStats: {},
     decisions: 0, matchedFrequencyTotal: 0, sessionNet: 0, completedHands: 0,
     lastAggressor: null, spotDecisionOnly: false, handStartStack: 100,
+    historyRecordedHand: 0,
     preflopExtraPercent: 0, opponentLoosenessLevel: 4, opponentAggressionLevel: 4
   };
+
+  const deviceId = loadOrCreateDeviceId();
+  let historyItems = loadHistory();
+
+  function makeDeviceId() {
+    if (window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+    const bytes = new Uint8Array(16);
+    if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(bytes);
+    else for (let index = 0; index < bytes.length; index += 1) bytes[index] = randomInt(256);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+
+  function loadOrCreateDeviceId() {
+    try {
+      const stored = window.localStorage.getItem(DEVICE_ID_KEY);
+      if (stored) return stored;
+      const created = makeDeviceId();
+      window.localStorage.setItem(DEVICE_ID_KEY, created);
+      return created;
+    } catch (_) {
+      return makeDeviceId();
+    }
+  }
+
+  function pruneHistory(items, now = Date.now()) {
+    return items.filter((item) => item && Number.isFinite(item.timestamp) && item.timestamp > now - HISTORY_TTL_MS && item.timestamp <= now
+      && ['full', 'preflop', 'postflop'].includes(item.mode) && typeof item.position === 'string'
+      && Array.isArray(item.cards) && Array.isArray(item.board) && typeof item.result === 'string');
+  }
+
+  function loadHistory() {
+    try {
+      const raw = window.localStorage.getItem(`${HISTORY_KEY_PREFIX}${deviceId}`);
+      const parsed = raw ? JSON.parse(raw) : [];
+      const clean = pruneHistory(Array.isArray(parsed) ? parsed : []);
+      window.localStorage.setItem(`${HISTORY_KEY_PREFIX}${deviceId}`, JSON.stringify(clean));
+      return clean;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function persistHistory() {
+    try { window.localStorage.setItem(`${HISTORY_KEY_PREFIX}${deviceId}`, JSON.stringify(historyItems)); }
+    catch (_) { /* The current page still keeps the history in memory if browser storage is unavailable. */ }
+  }
+
+  function recordCompletedHistory() {
+    if (state.historyRecordedHand === state.handNumber) return;
+    state.historyRecordedHand = state.handNumber;
+    const heroPlayer = hero();
+    const review = state.currentReview;
+    const item = {
+      timestamp: Date.now(),
+      handNumber: state.handNumber,
+      mode: state.mode,
+      position: heroPlayer.position,
+      cards: heroPlayer.cards.map(cardText),
+      board: state.board.map(cardText),
+      result: state.resultText,
+      action: review ? review.actionLabel : '',
+      matchPercent: review ? review.match : null,
+      netBb: state.mode === 'full' ? roundChip(heroPlayer.chips - state.handStartStack) : null
+    };
+    historyItems = pruneHistory([...historyItems, item]);
+    persistHistory();
+    renderHistory();
+  }
+
+  function renderHistory() {
+    if (!ui.historyList) return;
+    const now = Date.now();
+    historyItems = pruneHistory(historyItems, now);
+    persistHistory();
+    ui.deviceId.textContent = deviceId.slice(0, 8).toUpperCase();
+    ui.historyCount.textContent = String(historyItems.length);
+    const fullResults = historyItems.filter((item) => Number.isFinite(item.netBb));
+    const totalNet = roundChip(fullResults.reduce((sum, item) => sum + item.netBb, 0));
+    ui.historyNet.textContent = `${totalNet > 0 ? '+' : ''}${fmt(totalNet)} bb`;
+    ui.historyNet.dataset.result = totalNet > 0 ? 'positive' : totalNet < 0 ? 'negative' : 'even';
+    const scored = historyItems.filter((item) => Number.isFinite(item.matchPercent));
+    const averageMatch = scored.length ? Math.round(scored.reduce((sum, item) => sum + item.matchPercent, 0) / scored.length) : null;
+    ui.historyMatch.textContent = averageMatch === null ? '—' : `${averageMatch}%`;
+
+    ui.historyList.replaceChildren();
+    const recent = historyItems.slice().sort((a, b) => b.timestamp - a.timestamp).slice(0, 12);
+    if (!recent.length) {
+      const empty = document.createElement('li');
+      empty.className = 'history-empty';
+      empty.textContent = '完成一手牌或训练节点后，会显示在这里。';
+      ui.historyList.append(empty);
+      return;
+    }
+    for (const item of recent) {
+      const row = document.createElement('li');
+      row.className = 'history-entry';
+      const heading = document.createElement('div');
+      heading.className = 'history-entry-heading';
+      const context = document.createElement('span');
+      context.textContent = `${new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(item.timestamp)} · ${modeName(item.mode)} · ${item.position}`;
+      const delta = document.createElement('strong');
+      if (Number.isFinite(item.netBb)) {
+        delta.textContent = `${item.netBb > 0 ? '+' : ''}${fmt(item.netBb)} bb`;
+        delta.dataset.result = item.netBb > 0 ? 'positive' : item.netBb < 0 ? 'negative' : 'even';
+      } else {
+        delta.textContent = Number.isFinite(item.matchPercent) ? `匹配 ${Math.round(item.matchPercent)}%` : '训练完成';
+      }
+      heading.append(context, delta);
+      const cards = document.createElement('div');
+      cards.className = 'history-cards';
+      cards.textContent = `手牌 ${item.cards.join(' ')}${item.board.length ? ` · 公共牌 ${item.board.join(' ')}` : ''}`;
+      const result = document.createElement('div');
+      result.className = 'history-result';
+      result.textContent = item.mode === 'full' && item.action ? `${item.action} · ${item.result}` : item.result;
+      row.append(heading, cards, result);
+      ui.historyList.append(row);
+    }
+  }
 
   function randomInt(max) {
     if (max <= 1) return 0;
@@ -324,11 +451,13 @@
   }
 
   function finishTrainingSpot(prefix = '训练节点完成') {
+    if (state.handComplete) return;
     state.handComplete = true;
     state.humanTurn = false;
     state.currentActor = null;
     state.completedHands += 1;
     state.resultText = `${prefix} · ${state.currentReview ? state.currentReview.actionLabel : '本手无决策'}`;
+    recordCompletedHistory();
     render();
   }
 
@@ -342,6 +471,7 @@
     const heroPlayer = hero();
     state.sessionNet = roundChip(state.sessionNet + heroPlayer.chips - state.handStartStack);
     state.resultText = text;
+    recordCompletedHistory();
     render();
   }
 
@@ -1665,5 +1795,6 @@
 
   bindEvents();
   installWebMcpTools();
+  renderHistory();
   startNewHand();
 })();
