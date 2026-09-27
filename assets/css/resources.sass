@@ -1,0 +1,85 @@
+---
+---
+
+$teal: #11877f
+$line: #d7e0df
+$muted: #617278
+
+.content-page
+  max-width: 64rem
+
+.resource-grid
+  display: grid
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr))
+  gap: 1rem
+  margin: 1.75rem 0 0
+
+.resource-card
+  box-sizing: border-box
+  display: flex
+  min-height: 13rem
+  flex-direction: column
+  align-items: flex-start
+  padding: 1.35rem
+  border: 1px solid $line
+  border-top: 3px solid $teal
+  border-radius: 4px
+  background: #f7faf9
+
+.resource-card-type
+  color: $muted
+  font-size: 0.82rem
+  font-weight: 600
+  letter-spacing: 0.04em
+  text-transform: uppercase
+
+.resource-card h2
+  margin: 0.7rem 0 0.45rem
+  font-size: 1.25rem
+
+.resource-card p
+  margin: 0 0 1.1rem
+  text-align: left
+  line-height: 1.65
+
+.resource-card-link
+  display: inline-flex
+  min-height: 2.75rem
+  align-items: center
+  gap: 0.45rem
+  margin-top: auto
+  padding: 0 1rem
+  border-radius: 4px
+  background: $teal
+  color: #fff
+  font-weight: 600
+  text-decoration: none
+
+.resource-card-link:hover,
+.resource-card-link:focus-visible
+  background: darken($teal, 8%)
+  color: #fff
+
+@media (prefers-color-scheme: dark)
+  .resource-card
+    border-color: #414e52
+    border-top-color: #42aaa1
+    background: #252f33
+
+  .resource-card-type
+    color: #b6c3c5
+
+  .resource-card-link
+    background: #14766f
+
+  .resource-card-link:hover,
+  .resource-card-link:focus-visible
+    background: #199188
+
+@media (max-width: 40rem)
+  .resource-grid
+    margin-top: 1.25rem
+
+  .resource-card
+    min-height: 0
+    padding: 1.1rem

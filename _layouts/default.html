@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="{{ "/assets/css/index.css" | relative_url }}">
 {% endif %}
 {% if page.home %}<link rel="stylesheet" href="{{ "/assets/css/home.css" | relative_url }}">{% endif %}
+{% if page.resources %}<link rel="stylesheet" href="{{ "/assets/css/resources.css" | relative_url }}">{% endif %}
 {% if site.plugins contains "jekyll-feed" %}<link rel="alternate" href="{{ site.feed.path | default: "/feed.xml" | relative_url }}" type="application/atom+xml" title="{{ site.title }}">{% endif %}
 {% if page.mathjax or site.mathjax %}
 <link rel="stylesheet" href="{{ "/assets/katex/katex.min.css" | relative_url }}">

@@ -25,7 +25,7 @@ home: true
         </li>
         <li>
           <span class="home-hobby-icon home-hobby-poker" aria-hidden="true"><svg><use xlink:href="/assets/fontawesome/icons.svg#clone"></use></svg></span>
-          <span>Texas Hold'em Poker</span>
+          <a href="{{ '/poker/' | relative_url }}">Texas Hold'em Poker</a>
         </li>
       </ul>
     </aside>
