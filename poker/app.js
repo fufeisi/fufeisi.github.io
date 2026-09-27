@@ -16,12 +16,7 @@
   const HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const DEVICE_ID_KEY = 'riverlab:poker:device-id:v1';
   const HISTORY_KEY_PREFIX = 'riverlab:poker:history:v1:';
-  const AI_STYLES = [
-    { key: 'tight-passive', label: '紧弱', tightness: 0.08, aggression: -0.16 },
-    { key: 'tight-aggressive', label: '紧凶', tightness: 0.08, aggression: 0.18 },
-    { key: 'loose-passive', label: '松弱', tightness: -0.07, aggression: -0.14 },
-    { key: 'loose-aggressive', label: '松凶', tightness: -0.07, aggression: 0.22 }
-  ];
+  const STANDARD_AI_STYLE = { key: 'standard', label: '标准', tightness: 0, aggression: 0 };
   const FH_RANGES = window.FULLHOUSE_RANGES || { openCharts: {}, defense: {}, vs3Bet: {}, openSizeBb: {} };
   const CATEGORY_NAMES = ['高牌', '一对', '两对', '三条', '顺子', '同花', '葫芦', '四条', '同花顺'];
   const byId = (id) => document.getElementById(id);
@@ -36,8 +31,6 @@
     preflopFilter: byId('preflop-filter'), preflopRange: byId('preflop-extra'),
     rangeExtraValue: byId('range-extra-value'), rangePosition: byId('range-position'),
     rangeBase: byId('range-base'), rangeCurrent: byId('range-current'),
-    opponentLooseness: byId('opponent-looseness'), opponentAggression: byId('opponent-aggression'),
-    opponentLoosenessValue: byId('opponent-looseness-value'), opponentAggressionValue: byId('opponent-aggression-value'),
     nextHand: byId('next-hand'), handCount: byId('hands'), accuracy: byId('accuracy'),
     sessionResult: byId('session-result'), nodeDetails: byId('node-details'),
     decisionBox: byId('decision-box'), strategyTitle: byId('strategy-title'),
@@ -51,11 +44,11 @@
     mode: 'full', handNumber: 0, players: [], deck: [], board: [], street: 'preflop',
     currentBet: 0, minRaise: 1, pending: [], actedSinceFullRaise: new Set(),
     buttonSeat: 0, currentActor: null, humanTurn: false, handComplete: false, handEnded: false,
-    currentReview: null, resultText: '', actionLog: [], aiStyles: null, playerStats: {},
+    currentReview: null, resultText: '', actionLog: [], playerStats: {},
     decisions: 0, matchedFrequencyTotal: 0, sessionNet: 0, completedHands: 0,
     lastAggressor: null, spotDecisionOnly: false, handStartStack: 100,
     historyRecordedHand: 0,
-    preflopExtraPercent: 0, opponentLoosenessLevel: 4, opponentAggressionLevel: 4
+    preflopExtraPercent: 0
   };
 
   const deviceId = loadOrCreateDeviceId();
@@ -265,38 +258,13 @@
     }
   }
 
-  function sampleTraitSeats(level) {
-    // Random rounding keeps five seats close to the configured share at every notch.
-    const expectedCount = ((level - 1) / 6) * 5;
-    const count = Math.floor(expectedCount) + Number(randomInt(6) < Math.round((expectedCount % 1) * 6));
-    const seats = [0, 1, 2, 3, 4];
-    for (let index = seats.length - 1; index > 0; index -= 1) {
-      const swapIndex = randomInt(index + 1);
-      [seats[index], seats[swapIndex]] = [seats[swapIndex], seats[index]];
-    }
-    return new Set(seats.slice(0, count));
-  }
-
-  function sampleAIStyles() {
-    const looseSeats = sampleTraitSeats(state.opponentLoosenessLevel);
-    const aggressiveSeats = sampleTraitSeats(state.opponentAggressionLevel);
-    return Array.from({ length: 5 }, (_, index) => {
-      const loose = looseSeats.has(index);
-      const aggressive = aggressiveSeats.has(index);
-      const key = `${loose ? 'loose' : 'tight'}-${aggressive ? 'aggressive' : 'passive'}`;
-      return AI_STYLES.find((style) => style.key === key);
-    });
-  }
-
   function makePlayers(stack) {
-    state.aiStyles = sampleAIStyles();
     const names = [BOT_NAMES[0], BOT_NAMES[1], BOT_NAMES[2], HUMAN_NAME, BOT_NAMES[3], BOT_NAMES[4]];
-    let botIndex = 0;
     state.players = names.map((name, seat) => ({
       id: `p${seat}`, seat, name, human: seat === HERO_SEAT, position: '',
       cards: [], chips: stack, committed: 0, streetBet: 0, folded: false,
       allIn: false, actionLabel: '',
-      aiStyle: seat === HERO_SEAT ? null : state.aiStyles[botIndex++]
+      aiStyle: seat === HERO_SEAT ? null : STANDARD_AI_STYLE
     }));
   }
 
@@ -795,17 +763,6 @@
     ui.rangeCurrent.textContent = percentageText(profile.totalMass / 1326 * 100);
   }
 
-  function renderOpponentStyleFilter() {
-    const looseness = state.opponentLoosenessLevel;
-    const aggression = state.opponentAggressionLevel;
-    const loosePercent = Math.round((looseness - 1) / 6 * 100);
-    const aggressivePercent = Math.round((aggression - 1) / 6 * 100);
-    ui.opponentLooseness.value = String(looseness);
-    ui.opponentAggression.value = String(aggression);
-    ui.opponentLoosenessValue.textContent = `${loosePercent}% · ${looseness}/7`;
-    ui.opponentAggressionValue.textContent = `${aggressivePercent}% · ${aggression}/7`;
-  }
-
   function fullhouseDefenseDistribution(openerPosition, defenderPosition, hand) {
     const tier = openerPosition === 'UTG' ? 'early' : openerPosition === 'HJ' ? 'middle' : 'late';
     const order = { UTG: 0, HJ: 1, CO: 2, BTN: 3, SB: 4, BB: 5 };
@@ -1081,6 +1038,7 @@
   function decidePreflop(player) {
     const style = player.aiStyle;
     const hand = canonicalHand(player.cards);
+    const premiumPair = hand === 'AA' || hand === 'KK';
     const toCall = Math.max(0, state.currentBet - player.streetBet);
     const history = preflopHistory();
     const raiseCount = history.raises.length;
@@ -1099,7 +1057,9 @@
       }
     }
 
-    if (raiseCount >= 1 && toCall >= 0.6 * (player.chips + player.streetBet) && toCall > 0) {
+    if (jam && premiumPair && toCall > 0) return { action: 'call' };
+
+    if (!premiumPair && raiseCount >= 1 && toCall >= 0.6 * (player.chips + player.streetBet) && toCall > 0) {
       const equity = currentEquity(player, 32);
       const required = toCall / Math.max(0.01, sumPot() + toCall);
       return equity >= required + 0.06 + Math.max(0, style.tightness * 0.25) ? { action: 'call' } : { action: 'fold' };
@@ -1154,7 +1114,10 @@
     if (history.raises[0]?.playerId === player.id) {
       const base = FH_RANGES.vs3Bet?.[hand] || { raise: 0, call: 0, fold: 1 };
       const choice = sampleFullhouseDistribution(base, style, hand, player.position);
-      if (choice === 'raise' && raiseAllowed) return fullhouseRaiseTo(player, state.currentBet * 2.25);
+      if (choice === 'raise') {
+        if (raiseAllowed) return fullhouseRaiseTo(player, state.currentBet * 2.25);
+        return toCall > 0 ? { action: 'call' } : { action: 'check' };
+      }
       return choice === 'call' && toCall > 0 ? { action: 'call' } : (canCheck ? { action: 'check' } : { action: 'fold' });
     }
     return decidePreflopDefense(player, hand, history, raiseAllowed, style);
@@ -1167,11 +1130,14 @@
     if (!opener) return canCheck ? { action: 'check' } : { action: 'fold' };
     const base = fullhouseDefenseDistribution(opener.position, player.position, hand);
     const choice = sampleFullhouseDistribution(base, style, hand, player.position);
-    if (choice === 'raise' && raiseAllowed) {
-      const order = { UTG: 0, HJ: 1, CO: 2, BTN: 3, SB: 4, BB: 5 };
-      const inPosition = player.position !== 'SB' && player.position !== 'BB'
-        && (order[player.position] ?? 0) > (order[opener.position] ?? 0);
-      return fullhouseRaiseTo(player, state.currentBet * (inPosition ? 3 : 4));
+    if (choice === 'raise') {
+      if (raiseAllowed) {
+        const order = { UTG: 0, HJ: 1, CO: 2, BTN: 3, SB: 4, BB: 5 };
+        const inPosition = player.position !== 'SB' && player.position !== 'BB'
+          && (order[player.position] ?? 0) > (order[opener.position] ?? 0);
+        return fullhouseRaiseTo(player, state.currentBet * (inPosition ? 3 : 4));
+      }
+      return toCall > 0 ? { action: 'call' } : { action: 'check' };
     }
     if (choice === 'call' && toCall > 0) return { action: 'call' };
     return canCheck ? { action: 'check' } : { action: 'fold' };
@@ -1658,7 +1624,6 @@
     renderControls();
     renderFeedback();
     renderPreflopFilter();
-    renderOpponentStyleFilter();
     if (state.handComplete) ui.tableStatus.innerHTML = `<strong>${state.resultText}</strong>`;
     else if (state.currentActor === heroPlayer.id) {
       const due = currentToCall(heroPlayer);
@@ -1699,14 +1664,6 @@
       state.preflopExtraPercent = Number(ui.preflopRange.value) || 0;
       renderPreflopFilter();
     });
-    ui.opponentLooseness.addEventListener('input', () => {
-      state.opponentLoosenessLevel = clamp(Number(ui.opponentLooseness.value) || 4, 1, 7);
-      renderOpponentStyleFilter();
-    });
-    ui.opponentAggression.addEventListener('input', () => {
-      state.opponentAggressionLevel = clamp(Number(ui.opponentAggression.value) || 4, 1, 7);
-      renderOpponentStyleFilter();
-    });
     document.querySelectorAll('.mode-button').forEach((button) => button.addEventListener('click', () => {
       if (button.dataset.mode === state.mode) return;
       document.querySelectorAll('.mode-button').forEach((item) => {
@@ -1744,10 +1701,7 @@
             : ['fold', ...(due > 0.001 ? ['call'] : ['check']), ...((!state.actedSinceFullRaise.has(player.id) && player.chips > due && player.streetBet + player.chips > state.currentBet) ? [state.currentBet > 0 ? 'raise' : 'bet'] : [])];
           return {
             mode: modeName(), handNumber: state.handNumber, street: streetName(state.street),
-            opponentStyleMix: {
-              loosePercent: Math.round((state.opponentLoosenessLevel - 1) / 6 * 100),
-              aggressivePercent: Math.round((state.opponentAggressionLevel - 1) / 6 * 100)
-            },
+            opponentStyle: { name: '标准', fixed: true },
             hero: { position: player.position, cards: player.cards.map(cardText), stackBb: player.chips },
             board: state.board.map(cardText), potBb: sumPot(), toCallBb: due,
             humanToAct: state.humanTurn, availableActions,

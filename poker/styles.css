@@ -119,9 +119,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
 .opponent-style-filter {
   width: min(550px, 58%);
   margin-left: auto;
-  padding: 7px 10px;
-  display: grid;
-  gap: 4px;
+  padding: 10px 12px;
   border: 1px solid #ffffff15;
   border-radius: 11px;
   background: #171d1a;
@@ -129,12 +127,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
 .style-filter-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .style-filter-title { color: #d4ddd3; font-size: 10px; font-weight: 750; }
 .style-filter-note { color: #748278; font-size: 9px; white-space: nowrap; }
-.style-filter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.style-axis { min-width: 0; display: grid; gap: 1px; }
-.style-axis-heading { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 4px; color: var(--muted); font-size: 10px; }
-.style-axis-heading output { color: var(--lime); font-size: 9px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.style-axis-control { min-width: 0; display: grid; grid-template-columns: 15px minmax(0, 1fr) 15px; align-items: center; gap: 3px; color: var(--muted); font-size: 8px; text-align: center; }
-.style-range { width: 100%; min-width: 0; height: 24px; margin: 0; accent-color: var(--lime); cursor: pointer; touch-action: pan-x; }
 
 .layout { min-height: 0; flex: 1; display: flex; flex-direction: column; gap: 10px; }
 .panel { border: 1px solid var(--line); border-radius: 15px; background: var(--surface); }
@@ -410,13 +402,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
   .range-slider { height: 38px; }
   .range-meta { font-size: 9px; }
   .opponent-style-filter { width: 100%; margin-left: 0; padding: 6px 8px; gap: 3px; }
-  .style-filter-grid { gap: 8px; }
   .style-filter-title { font-size: 9px; }
   .style-filter-note { font-size: 8px; }
-  .style-axis-heading { font-size: 9px; }
-  .style-axis-heading output { font-size: 8px; }
-  .style-axis-control { grid-template-columns: 14px minmax(0, 1fr) 14px; }
-  .style-range { height: 30px; }
   .layout { flex: none; gap: 9px; }
   .table-panel { height: clamp(420px, 116vw, 500px); min-height: 0; flex: none; border-radius: 15px; }
   .table-top { top: 10px; left: 10px; right: 10px; font-size: 10px; }

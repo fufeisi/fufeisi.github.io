@@ -26,18 +26,8 @@
           <div class="range-meta"><span id="range-position">BTN · 开池</span><span>范围 <b id="range-base">0%</b> → <b id="range-current">0%</b></span></div>
         </div>
       </div>
-      <section class="opponent-style-filter" aria-label="AI 对手风格设置">
-        <div class="style-filter-heading"><span class="style-filter-title">AI 对手风格</span><span class="style-filter-note">五位对手每手重抽 · 下手生效</span></div>
-        <div class="style-filter-grid">
-          <label class="style-axis">
-            <span class="style-axis-heading"><span>松风格占比</span><output id="opponent-looseness-value" title="松风格的抽样概率">50% · 4/7</output></span>
-            <span class="style-axis-control"><span>紧</span><input class="style-range" id="opponent-looseness" type="range" min="1" max="7" step="1" value="4" aria-label="AI 松风格比例，七档" title="每位 AI 被分到松风格的概率"><span>松</span></span>
-          </label>
-          <label class="style-axis">
-            <span class="style-axis-heading"><span>凶风格占比</span><output id="opponent-aggression-value" title="凶风格的抽样概率">50% · 4/7</output></span>
-            <span class="style-axis-control"><span>弱</span><input class="style-range" id="opponent-aggression" type="range" min="1" max="7" step="1" value="4" aria-label="AI 凶风格比例，七档" title="每位 AI 被分到凶风格的概率"><span>凶</span></span>
-          </label>
-        </div>
+      <section class="opponent-style-filter" aria-label="AI 对手风格">
+        <div class="style-filter-heading"><span class="style-filter-title">AI 对手风格</span><span class="style-filter-note">五位 AI 固定采用标准策略</span></div>
       </section>
       <div class="layout">
         <section class="panel table-panel" aria-label="德州扑克牌桌">
@@ -52,7 +42,7 @@
           <div class="spot-card" id="node-details"></div>
           <div class="decision-box" id="decision-box"><div class="decision-kicker">等待你的选择</div><strong>—</strong><p>观察位置、底池赔率和牌面结构，再选择行动。</p></div>
           <div><div class="strategy-title" id="strategy-title">参考行动频率</div><div id="strategy-list"><div class="empty-strategy">做出选择后显示本地策略参考</div></div></div>
-          <div class="notice"><strong>AI 对手</strong><br>五位 AI 的风格由上方松紧、凶弱滑块控制，并在每手开始时按设定比例随机分配；决策移植 Fullhouse Bot 最终版的翻前范围、短筹码、范围权益、下注与价值加注分支。训练频率为近似参考，不代表求解器给出的真实 GTO 频率。</div>
+          <div class="notice"><strong>AI 对手</strong><br>五位 AI 固定采用标准风格；决策参考 Fullhouse Bot 最终版的翻前范围、短筹码、范围权益、下注与价值加注分支。训练频率为近似参考，不代表求解器给出的真实 GTO 频率。</div>
         </aside>
       </div>
       <div class="session-footer"><span class="footer-note" id="footer-note">模拟现金局 · 筹码以大盲注（bb）显示</span><button class="next-hand" id="next-hand">发下一手 <span aria-hidden="true">→</span></button></div>
