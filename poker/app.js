@@ -15,10 +15,17 @@
   const HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const DEVICE_ID_KEY = 'riverlab:poker:device-id:v1';
   const HISTORY_KEY_PREFIX = 'riverlab:poker:history:v1:';
+  const AI_STYLE_KEY = 'riverlab:poker:ai-style:v1';
   const AI_SESSION_KEY = 'riverlab:poker:ai-session:v1';
   const AI_HAND_NUMBER_KEY = 'riverlab:poker:ai-hand-number:v1';
   const FULLHOUSE_API_BASE = String(window.FULLHOUSE_API_BASE || '').trim().replace(/\/+$/, '');
-  const BALANCED_AI_STYLE = { key: 'balanced', tightness: 0, aggression: 0 };
+  const AI_STYLES = [
+    { key: 'tight-passive', tightness: 0.08, aggression: -0.16 },
+    { key: 'tight-aggressive', tightness: 0.08, aggression: 0.18 },
+    { key: 'loose-passive', tightness: -0.07, aggression: -0.14 },
+    { key: 'loose-aggressive', tightness: -0.07, aggression: 0.22 },
+    { key: 'balanced', tightness: 0, aggression: 0 }
+  ];
   const FH_RANGES = window.FULLHOUSE_RANGES || { openCharts: {}, defense: {}, vs3Bet: {}, openSizeBb: {} };
   const CATEGORY_KEYS = ['highCard', 'onePair', 'twoPair', 'trips', 'straight', 'flush', 'fullHouse', 'quads', 'straightFlush'];
   const byId = (id) => document.getElementById(id);
@@ -34,6 +41,8 @@
     preflopFilter: byId('preflop-filter'), preflopRange: byId('preflop-extra'),
     rangeExtraValue: byId('range-extra-value'), rangePosition: byId('range-position'),
     rangeBase: byId('range-base'), rangeCurrent: byId('range-current'),
+    aiTightness: byId('ai-tightness'), aiTightnessValue: byId('ai-tightness-value'),
+    aiAggression: byId('ai-aggression'), aiAggressionValue: byId('ai-aggression-value'),
     nextHand: byId('next-hand'), handCount: byId('hands'), accuracy: byId('accuracy'),
     sessionResult: byId('session-result'), nodeDetails: byId('node-details'),
     decisionBox: byId('decision-box'), strategyTitle: byId('strategy-title'),
@@ -52,9 +61,13 @@
     lastAggressor: null, spotDecisionOnly: false, handStartStack: 100,
     historyRecordedHand: 0,
     preflopExtraPercent: 0,
+    tableTightness: 4, tableAggression: 4,
     aiServiceIssue: false
   };
 
+  const savedAIStyle = loadAIStyleSettings();
+  state.tableTightness = savedAIStyle.tightness;
+  state.tableAggression = savedAIStyle.aggression;
   const deviceId = loadOrCreateDeviceId();
   const aiSessionId = loadOrCreateAiSessionId();
   let historyItems = loadHistory();
@@ -93,6 +106,39 @@
     } catch (_) {
       return makeDeviceId();
     }
+  }
+
+  function loadAIStyleSettings() {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(AI_STYLE_KEY) || '{}');
+      const normalizeLevel = (value) => {
+        const number = Number(value);
+        return Number.isFinite(number) ? Math.max(1, Math.min(7, Math.round(number))) : 4;
+      };
+      return { tightness: normalizeLevel(saved.tightness), aggression: normalizeLevel(saved.aggression) };
+    } catch (_) {
+      return { tightness: 4, aggression: 4 };
+    }
+  }
+
+  function persistAIStyleSettings() {
+    try {
+      window.localStorage.setItem(AI_STYLE_KEY, JSON.stringify({
+        tightness: state.tableTightness,
+        aggression: state.tableAggression
+      }));
+    } catch (_) { /* Keep the selected values in memory when storage is unavailable. */ }
+  }
+
+  function updateAIStyleLabels() {
+    ui.aiTightness.value = String(state.tableTightness);
+    ui.aiAggression.value = String(state.tableAggression);
+    const tightnessDescription = t(`style.tightness.${state.tableTightness}`);
+    const aggressionDescription = t(`style.aggression.${state.tableAggression}`);
+    ui.aiTightnessValue.textContent = t('style.level', { level: state.tableTightness, description: tightnessDescription });
+    ui.aiAggressionValue.textContent = t('style.level', { level: state.tableAggression, description: aggressionDescription });
+    ui.aiTightness.setAttribute('aria-valuetext', tightnessDescription);
+    ui.aiAggression.setAttribute('aria-valuetext', aggressionDescription);
   }
 
   function nextAiHandNumber() {
@@ -454,7 +500,28 @@
   }
 
   function sampleAIStyles() {
-    return Array(5).fill(BALANCED_AI_STYLE);
+    const tightBias = (state.tableTightness - 4) / 3;
+    const aggressionBias = (state.tableAggression - 4) / 3;
+    const intensity = Math.max(Math.abs(tightBias), Math.abs(aggressionBias));
+    if (intensity === 0) return Array(5).fill(AI_STYLES.find((style) => style.key === 'balanced'));
+
+    const tightProbability = (1 + tightBias) / 2;
+    const aggressiveProbability = (1 + aggressionBias) / 2;
+    const weightedStyles = [
+      [AI_STYLES.find((style) => style.key === 'tight-passive'), intensity * tightProbability * (1 - aggressiveProbability)],
+      [AI_STYLES.find((style) => style.key === 'tight-aggressive'), intensity * tightProbability * aggressiveProbability],
+      [AI_STYLES.find((style) => style.key === 'loose-passive'), intensity * (1 - tightProbability) * (1 - aggressiveProbability)],
+      [AI_STYLES.find((style) => style.key === 'loose-aggressive'), intensity * (1 - tightProbability) * aggressiveProbability],
+      [AI_STYLES.find((style) => style.key === 'balanced'), 1 - intensity]
+    ];
+    return Array.from({ length: 5 }, () => {
+      let roll = (randomInt(1_000_000) / 1_000_000) * weightedStyles.reduce((sum, [, weight]) => sum + weight, 0);
+      for (const [style, weight] of weightedStyles) {
+        roll -= weight;
+        if (roll < 0) return style;
+      }
+      return weightedStyles[weightedStyles.length - 1][0];
+    });
   }
 
   function makePlayers(stack) {
@@ -1581,7 +1648,8 @@
         chips: item.chips,
         street_bet: item.streetBet,
         folded: item.folded,
-        all_in: item.allIn
+        all_in: item.allIn,
+        style: item.human ? 'balanced' : item.aiStyle.key
       })),
       action_log: state.actionLog.map((event) => ({
         seat: event.seat,
@@ -2006,6 +2074,17 @@
   }
 
   function bindEvents() {
+    updateAIStyleLabels();
+    ui.aiTightness.addEventListener('input', () => {
+      state.tableTightness = Number(ui.aiTightness.value) || 4;
+      updateAIStyleLabels();
+      persistAIStyleSettings();
+    });
+    ui.aiAggression.addEventListener('input', () => {
+      state.tableAggression = Number(ui.aiAggression.value) || 4;
+      updateAIStyleLabels();
+      persistAIStyleSettings();
+    });
     ui.preflopRange.addEventListener('input', () => {
       state.preflopExtraPercent = Number(ui.preflopRange.value) || 0;
       renderPreflopFilter();
@@ -2031,6 +2110,7 @@
     window.addEventListener('poker-language-change', () => {
       render();
       renderHistory();
+      updateAIStyleLabels();
     });
   }
 

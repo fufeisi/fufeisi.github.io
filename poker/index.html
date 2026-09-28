@@ -7,7 +7,7 @@
   <meta name="description" content="与五位 AI 对手练习德州扑克，复盘翻前与翻后决策。" data-i18n-content="meta.description">
   <title data-i18n-title="meta.title">River Lab — 德州扑克训练桌</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%23192224'/%3E%3Cpath d='M20 7 8 21a7 7 0 0 0 12 5 7 7 0 0 0 12-5L20 7Zm-4 22-3 5h14l-3-5' fill='%23bcf56b'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css?v=action-line">
+  <link rel="stylesheet" href="styles.css?v=style-controls">
 </head>
 <body>
   <div class="app" id="app">
@@ -43,6 +43,19 @@
           <div class="range-meta"><span id="range-position">BTN · 开池</span><span><span data-i18n="range.current">范围</span> <b id="range-base">0%</b> → <b id="range-current">0%</b></span></div>
         </div>
       </div>
+      <section class="opponent-style-filter" aria-labelledby="ai-style-title" aria-label="AI 对手整体风格" data-i18n-aria="style.aria">
+        <div class="style-filter-heading"><span id="ai-style-title" class="style-filter-title" data-i18n="style.title">整体 AI 风格</span><span class="style-filter-note" data-i18n="style.note">中间档为原版均衡；调整后下手抽样</span></div>
+        <div class="style-sliders">
+          <div class="style-axis">
+            <div class="style-axis-heading"><label for="ai-tightness" data-i18n="style.tightness">松 / 紧</label><output id="ai-tightness-value" for="ai-tightness">4/7 · 均衡</output></div>
+            <div class="style-axis-slider"><span data-i18n="style.loose">松</span><input id="ai-tightness" type="range" min="1" max="7" step="1" value="4" aria-label="AI 松紧程度" data-i18n-aria="style.tightnessAria"><span data-i18n="style.tight">紧</span></div>
+          </div>
+          <div class="style-axis">
+            <div class="style-axis-heading"><label for="ai-aggression" data-i18n="style.aggression">弱 / 凶</label><output id="ai-aggression-value" for="ai-aggression">4/7 · 均衡</output></div>
+            <div class="style-axis-slider"><span data-i18n="style.passive">弱</span><input id="ai-aggression" type="range" min="1" max="7" step="1" value="4" aria-label="AI 弱凶程度" data-i18n-aria="style.aggressionAria"><span data-i18n="style.aggressive">凶</span></div>
+          </div>
+        </div>
+      </section>
       <div class="layout">
         <section class="panel table-panel" aria-label="德州扑克牌桌" data-i18n-aria="table.aria">
           <div class="table-top"><span>NLH · <b><span data-i18n="table.blinds">盲注</span> 0.5 / 1 bb</b></span><div class="table-pills"><span class="pill" id="hand-id">手牌 #0001</span><span class="pill" id="street-pill">翻牌前</span></div></div>
@@ -76,8 +89,8 @@
     </main>
   </div>
   <script src="fullhouse-config.js"></script>
-  <script src="i18n.js?v=action-line"></script>
+  <script src="i18n.js?v=style-controls"></script>
   <script src="fullhouse-ranges.js"></script>
-  <script src="app.js?v=action-line"></script>
+  <script src="app.js?v=style-controls"></script>
 </body>
 </html>

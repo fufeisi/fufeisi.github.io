@@ -123,14 +123,21 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
 .opponent-style-filter {
   width: min(550px, 58%);
   margin-left: auto;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border: 1px solid #ffffff15;
   border-radius: 11px;
   background: #171d1a;
 }
-.style-filter-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.style-filter-heading { margin-bottom: 5px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .style-filter-title { color: #d4ddd3; font-size: 10px; font-weight: 750; }
 .style-filter-note { color: #748278; font-size: 9px; white-space: nowrap; }
+.style-sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.style-axis { min-width: 0; }
+.style-axis-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; color: #cbd6cb; font-size: 10px; }
+.style-axis-heading label { font-weight: 700; }
+.style-axis-heading output { color: var(--lime); font-size: 9px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.style-axis-slider { display: grid; grid-template-columns: auto minmax(60px, 1fr) auto; align-items: center; gap: 6px; color: #748278; font-size: 9px; }
+.style-axis-slider input { width: 100%; min-width: 0; height: 28px; margin: 0; accent-color: var(--lime); cursor: pointer; touch-action: pan-x; }
 
 .layout { min-height: 0; flex: 1; display: flex; flex-direction: column; gap: 10px; }
 .panel { border: 1px solid var(--line); border-radius: 15px; background: var(--surface); }
@@ -422,9 +429,15 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
   .range-label output { font-size: 12px; }
   .range-slider { height: 38px; }
   .range-meta { font-size: 9px; }
-  .opponent-style-filter { width: 100%; margin-left: 0; padding: 6px 8px; gap: 3px; }
+  .opponent-style-filter { width: 100%; margin-left: 0; padding: 7px 8px; }
+  .style-filter-heading { margin-bottom: 4px; align-items: flex-start; flex-direction: column; gap: 1px; }
   .style-filter-title { font-size: 9px; }
   .style-filter-note { font-size: 8px; }
+  .style-sliders { gap: 8px; }
+  .style-axis-heading { flex-wrap: wrap; font-size: 9px; }
+  .style-axis-heading output { font-size: 8px; }
+  .style-axis-slider { grid-template-columns: auto minmax(45px, 1fr) auto; gap: 4px; font-size: 8px; }
+  .style-axis-slider input { height: 36px; }
   .layout { flex: none; gap: 9px; }
   .table-panel { height: clamp(420px, 116vw, 500px); min-height: 0; flex: none; border-radius: 15px; }
   .table-top { top: 10px; left: 10px; right: 10px; font-size: 10px; }
