@@ -18,13 +18,7 @@
   const AI_SESSION_KEY = 'riverlab:poker:ai-session:v1';
   const AI_HAND_NUMBER_KEY = 'riverlab:poker:ai-hand-number:v1';
   const FULLHOUSE_API_BASE = String(window.FULLHOUSE_API_BASE || '').trim().replace(/\/+$/, '');
-  const AI_STYLES = [
-    { key: 'tight-passive', tightness: 0.08, aggression: -0.16 },
-    { key: 'tight-aggressive', tightness: 0.08, aggression: 0.18 },
-    { key: 'loose-passive', tightness: -0.07, aggression: -0.14 },
-    { key: 'loose-aggressive', tightness: -0.07, aggression: 0.22 },
-    { key: 'balanced', tightness: 0, aggression: 0 }
-  ];
+  const BALANCED_AI_STYLE = { key: 'balanced', tightness: 0, aggression: 0 };
   const FH_RANGES = window.FULLHOUSE_RANGES || { openCharts: {}, defense: {}, vs3Bet: {}, openSizeBb: {} };
   const CATEGORY_KEYS = ['highCard', 'onePair', 'twoPair', 'trips', 'straight', 'flush', 'fullHouse', 'quads', 'straightFlush'];
   const byId = (id) => document.getElementById(id);
@@ -369,7 +363,7 @@
   }
 
   function sampleAIStyles() {
-    return Array.from({ length: 5 }, () => AI_STYLES[randomInt(AI_STYLES.length)]);
+    return Array(5).fill(BALANCED_AI_STYLE);
   }
 
   function makePlayers(stack) {
@@ -1496,8 +1490,7 @@
         chips: item.chips,
         street_bet: item.streetBet,
         folded: item.folded,
-        all_in: item.allIn,
-        style: item.human ? 'balanced' : item.aiStyle.key
+        all_in: item.allIn
       })),
       action_log: state.actionLog.map((event) => ({
         seat: event.seat,

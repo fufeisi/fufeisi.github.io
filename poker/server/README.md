@@ -13,17 +13,11 @@ pip install -r requirements.txt
 uvicorn app:app --reload --port 8010
 ```
 
-The health endpoint is `http://localhost:8010/health`. The page allows this local origin. For local development, set `window.FULLHOUSE_API_BASE` in the sibling `fullhouse-config.js` to `http://localhost:8010`.
+The health endpoint is `http://localhost:8010/health`. The page allows this local origin. For local development, set `window.FULLHOUSE_API_BASE` in `dist/fullhouse-config.js` to `http://localhost:8010`.
 
 ## Deploy to AWS Lambda
 
-After authenticating the AWS CLI, run the deployment script from this directory:
-
-```sh
-bash deploy-lambda.sh
-```
-
-The script builds a Python 3.12 x86_64 deployment ZIP, creates or updates these resources in `us-west-2` by default, and writes the resulting Function URL into `fullhouse-config.js` in the frontend directory. When `dist/` exists beside `server/` it uses that directory; otherwise it writes beside this project's `poker/` frontend. Set `POKER_FRONTEND_DIR` to override the path.
+Run `bash server/deploy-lambda.sh` after authenticating the AWS CLI. The script builds a Python 3.12 x86_64 deployment ZIP, creates or updates these resources in `us-west-2` by default, and writes the resulting Function URL into `fullhouse-config.js` in the frontend directory. When `dist/` exists it uses that directory; set `POKER_FRONTEND_DIR` to override the path.
 
 - Lambda Function URL with public `NONE` auth so the GitHub Pages client can call it directly.
 - On-demand DynamoDB table `riverlab-fullhouse-sessions`, keyed by `session_id`, with TTL on `expires_at`.
@@ -44,4 +38,4 @@ When `SESSION_TABLE_NAME` is unset, the API runs locally and keeps session stati
 
 Each decision request contains only the acting AI's hole cards, public board, public player stacks and bets, legal-raise state, and the public action log. Other players' hole cards and the browser's seven-day training history are not sent. The adapter validates the request, calls Fullhouse, then maps the returned action and bet target to a legal game action.
 
-The client also sends the acting bot's randomly assigned persona (`tight-passive`, `tight-aggressive`, `loose-passive`, `loose-aggressive`, or `balanced`). Balanced preserves the raw Fullhouse action. Other personas make small probabilistic adjustments after Fullhouse decides, such as folding a few more calls, loosening cheap folds, nudging a call into a raise, or smoothing some raises into calls. This keeps Fullhouse as the decision baseline while letting the five labeled styles play differently.
+All five AI opponents use the original Fullhouse Bot decision directly on every street, including its built-in preflop ranges and postflop decisions. The frontend does not send persona settings or modify the returned action. The separate training-frequency display remains an approximation and is not a solver GTO chart.

@@ -7,7 +7,6 @@ import datetime as dt
 import json
 import logging
 import os
-import random
 import threading
 import time
 import uuid
@@ -53,7 +52,6 @@ class PlayerInput(BaseModel):
     street_bet: float = Field(ge=0, le=100_000)
     folded: bool
     all_in: bool
-    style: Literal["tight-passive", "tight-aggressive", "loose-passive", "loose-aggressive", "balanced"] = "balanced"
 
 
 class ActionInput(BaseModel):
@@ -247,45 +245,11 @@ def _save_persistent_state(table, session_id: str, version: int) -> bool:
     return True
 
 
-def _apply_style_bias(raw_action: dict, game_state: dict, request: DecisionRequest) -> dict:
-    """Keep Fullhouse's action as the baseline and apply a small persona bias."""
-    actor = next(player for player in request.players if player.seat == request.seat_to_act)
-    profiles = {
-        "tight-passive": (0.08, -0.16),
-        "tight-aggressive": (0.08, 0.18),
-        "loose-passive": (-0.07, -0.14),
-        "loose-aggressive": (-0.07, 0.22),
-        "balanced": (0.0, 0.0),
-    }
-    tightness, aggression = profiles.get(actor.style, (0.0, 0.0))
-    action = str(raw_action.get("action", "fold")).lower() if isinstance(raw_action, dict) else "fold"
-    owed = max(0.0, request.current_bet - actor.street_bet)
-
-    if tightness > 0 and action == "call" and random.random() < tightness * 0.9:
-        return {"action": "fold"}
-    if tightness < 0 and action == "fold" and owed > 0 and owed <= request.pot * 0.2:
-        if random.random() < abs(tightness) * 0.85:
-            return {"action": "call"}
-
-    if aggression > 0 and action in {"check", "call"} and request.can_raise:
-        if random.random() < aggression * 0.5:
-            cap = actor.street_bet + actor.chips
-            minimum = float(game_state["min_raise_to"])
-            target = request.current_bet + max(request.min_raise, request.pot * 0.5)
-            target = min(cap, max(minimum, target))
-            return {"action": "all_in" if target >= cap else ("raise" if request.current_bet > 0 else "bet"), "amount": target}
-    elif aggression < 0 and action in {"raise", "all_in"}:
-        if random.random() < abs(aggression) * 0.4:
-            return {"action": "call" if owed > 0 else "check"}
-
-    return raw_action
-
-
 def _decide_with_session_state(game_state: dict, request: DecisionRequest) -> dict:
     session_id = request.session_id
     if not DYNAMODB_TABLE_NAME:
         _touch_session(session_id)
-        return _apply_style_bias(fullhouse_bot.decide(game_state), game_state, request)
+        return fullhouse_bot.decide(game_state)
 
     table = _get_session_table()
     _consume_daily_quota(table)
@@ -295,7 +259,7 @@ def _decide_with_session_state(game_state: dict, request: DecisionRequest) -> di
         version, player_stats, applied = _load_persistent_state(table, session_id)
         _restore_persistent_state(session_id, player_stats, applied)
         fullhouse_bot.LAST_READ.clear()
-        raw_action = _apply_style_bias(fullhouse_bot.decide(game_state), game_state, request)
+        raw_action = fullhouse_bot.decide(game_state)
         if _save_persistent_state(table, session_id, version):
             return raw_action
 
