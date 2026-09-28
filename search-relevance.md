@@ -17,9 +17,20 @@ relevance_model: true
     <div class="relevance-intro">
       <h2 id="relevance-title">Popularity isn't the same as relevance</h2>
       <div class="score-examples" aria-label="Example relevance scores for this search">
-        <div class="score-example"><span>Black shoe</span><strong>2 <small>/ 2</small></strong></div>
-        <div class="score-example"><span>Other shoe</span><strong>1 <small>/ 2</small></strong></div>
-        <div class="score-example"><span>Poker chip case</span><strong>0 <small>/ 2</small></strong></div>
+        <div class="score-example">
+          <div class="score-example-photo relevance-photo" data-photo="2" aria-hidden="true"><img src="{{ '/assets/images/search-retrieval-products.jpg' | relative_url }}" alt=""></div>
+          <div class="score-example-copy"><span>Black shoe</span><strong>2 <small>/ 2</small></strong></div>
+        </div>
+        <div class="score-example">
+          <div class="score-example-photo relevance-photo" data-photo="0" aria-hidden="true"><img src="{{ '/assets/images/search-retrieval-products.jpg' | relative_url }}" alt=""></div>
+          <div class="score-example-copy"><span>Other shoe</span><strong>1 <small>/ 2</small></strong></div>
+        </div>
+        <div class="score-example">
+          <div class="score-example-photo poker-case-photo" role="img" aria-label="Poker chip case">
+            <div class="score-poker-case" aria-hidden="true"><i></i><i></i><i></i></div>
+          </div>
+          <div class="score-example-copy"><span>Poker chip case</span><strong>0 <small>/ 2</small></strong></div>
+        </div>
       </div>
     </div>
 
@@ -39,7 +50,7 @@ relevance_model: true
 
     <div class="results-heading">
       <h2>Search results</h2>
-      <span class="results-count" aria-live="polite">6 products · sorted by clicks</span>
+      <span class="results-count" aria-live="polite">5 products · sorted by clicks</span>
     </div>
 
     <div class="relevance-products" aria-label="Five shoes and one poker chip case evaluated for the example search">
@@ -63,7 +74,7 @@ relevance_model: true
         <div class="relevance-photo" data-photo="4"><img src="{{ '/assets/images/search-retrieval-products.jpg' | relative_url }}" alt=""></div>
         <div class="relevance-details"><h3>Canvas low-top</h3><div class="product-meta"><span class="signal-popular">Popular</span><span>Navy · canvas</span></div><div class="relevance-score" hidden><span>SLM score · example</span><strong>1</strong><span> / 2</span></div></div>
       </article>
-      <article class="relevance-product" data-score="0" data-click-rank="1">
+      <article class="relevance-product" data-score="0" data-click-rank="1" data-model-only="true">
         <div class="relevance-photo poker-case-photo" role="img" aria-label="A box containing colorful poker chips">
           <div class="poker-case" aria-hidden="true">
             <span class="poker-case-handle"></span>

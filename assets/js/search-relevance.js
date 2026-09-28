@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const radios = demo.querySelectorAll('input[name="relevance-mode"]');
   const products = [...demo.querySelectorAll(".relevance-product")];
+  const modelOnlyProducts = products.filter((product) => product.dataset.modelOnly === "true");
   const productList = demo.querySelector(".relevance-products");
   const count = demo.querySelector(".results-count");
   const resultsTitle = demo.querySelector(".results-heading h2");
@@ -68,8 +69,9 @@ document.addEventListener("DOMContentLoaded", () => {
     demo.dataset.mode = enabled ? "on" : "off";
 
     if (!enabled) {
+      modelOnlyProducts.forEach((product) => { product.hidden = true; });
       resultsTitle.textContent = "Search results";
-      count.textContent = `${products.length} products · sorted by clicks`;
+      count.textContent = `${products.length - modelOnlyProducts.length} products · sorted by clicks`;
       return;
     }
 

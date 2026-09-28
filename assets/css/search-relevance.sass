@@ -89,28 +89,68 @@ $line: #d7e0df
 .score-example
   display: flex
   min-width: 0
-  min-height: 3.2rem
+  min-height: 3.5rem
   align-items: center
-  justify-content: space-between
-  gap: 0.35rem
-  padding: 0.55rem 0.65rem
+  justify-content: flex-start
+  gap: 0.5rem
+  padding: 0.45rem 0.55rem
   color: $muted
   font-size: 0.82rem
   line-height: 1.25
 
+.score-example-photo
+  flex: 0 0 2.6rem
+  width: 2.6rem
+  height: 2.6rem
+  border-radius: 4px
+
+.score-example-copy
+  display: flex
+  min-width: 0
+  flex-direction: column
+  gap: 0.15rem
+
+.score-example-copy > span
+  overflow-wrap: anywhere
+  font-size: 0.78rem
+
 .score-example + .score-example
   border-left: 1px solid $line
 
-.score-example strong
+.score-example-copy strong
   flex: 0 0 auto
   color: $teal-dark
   font-size: 1rem
   font-variant-numeric: tabular-nums
 
-.score-example small
+.score-example-copy small
   color: $muted
   font-size: 0.7rem
   font-weight: 500
+
+.score-poker-case
+  display: flex
+  width: 74%
+  height: 48%
+  align-items: center
+  justify-content: center
+  gap: 2px
+  border: 2px solid #596160
+  border-radius: 3px
+  background: linear-gradient(145deg, #3f4948, #171d1d 70%)
+
+.score-poker-case i
+  width: 6px
+  height: 8px
+  border: 1px dashed rgba(255, 255, 255, 0.82)
+  border-radius: 50%
+  background: #bd6048
+
+.score-poker-case i:nth-child(2)
+  background: #3579a6
+
+.score-poker-case i:nth-child(3)
+  background: #32826e
 
 .relevance-switch
   margin: 1.2rem 0 0.9rem
@@ -395,7 +435,7 @@ $line: #d7e0df
   .results-count,
   .product-meta,
   .score-example,
-  .score-example small
+  .score-example-copy small
     color: #b6c3c5
 
   .relevance-search
@@ -423,6 +463,12 @@ $line: #d7e0df
   .score-example + .score-example
     border-color: #414e52
 
+  .score-example-copy strong
+    color: #8bd6cc
+
+  .score-example-photo.poker-case-photo
+    background: radial-gradient(ellipse at center, #354043 0, #252f33 78%)
+
   .relevance-product
     border-color: #414e52
     background: #252f33
@@ -449,11 +495,19 @@ $line: #d7e0df
     grid-template-columns: repeat(2, minmax(0, 1fr))
 
   .score-example
-    align-items: flex-start
-    flex-direction: column
-    justify-content: center
-    gap: 0.2rem
-    padding: 0.45rem
+    gap: 0.35rem
+    padding: 0.4rem
+
+  .score-example-photo
+    flex-basis: 2.1rem
+    width: 2.1rem
+    height: 2.1rem
+
+  .score-example-copy > span
+    font-size: 0.7rem
+
+  .score-example-copy strong
+    font-size: 0.9rem
 
   .mode-option
     padding: 0 0.65rem
