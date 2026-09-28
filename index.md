@@ -36,7 +36,7 @@ home: true
     <h2 id="current-work-title">Current Work</h2>
     <div class="home-work-grid">
       <section class="home-work-item">
-        <h3>Retrieve Models</h3>
+        <h3>Retrieval Models</h3>
         <p>Built a high-throughput retrieval system handling 1K+ QPS for e-commerce search, retrieving relevant products, videos, and LIVE shopping streams for personalized queries and feeding candidates into downstream ranking models.</p>
       </section>
       <section class="home-work-item">

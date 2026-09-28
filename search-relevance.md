@@ -16,7 +16,7 @@ relevance_model: true
 
     <div class="relevance-intro">
       <h2 id="relevance-title">Popularity isn't the same as relevance</h2>
-      <p>A product can get many clicks and still miss what someone asked for. A relevance model checks whether each result fits the query, not just whether it attracts attention.</p>
+      <p>A product can get many clicks and still miss what someone asked for. After retrieval narrows the catalog, a small language model (SLM) scores each query–product pair in the ranking stage. Ranking uses these scores to put better matches above popular mismatches.</p>
     </div>
 
     <fieldset class="relevance-switch">
