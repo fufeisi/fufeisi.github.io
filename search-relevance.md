@@ -74,7 +74,7 @@ relevance_model: true
         <div class="relevance-photo" data-photo="4"><img src="{{ '/assets/images/search-retrieval-products.jpg' | relative_url }}" alt=""></div>
         <div class="relevance-details"><h3>Canvas low-top</h3><div class="product-meta"><span class="signal-popular">Popular</span><span>Navy · canvas</span></div><div class="relevance-score" hidden><span>SLM score · example</span><strong>1</strong><span> / 2</span></div></div>
       </article>
-      <article class="relevance-product" data-score="0" data-click-rank="1" data-model-only="true">
+      <article class="relevance-product" data-score="0" data-click-rank="1" data-model-only="true" hidden>
         <div class="relevance-photo poker-case-photo" role="img" aria-label="A box containing colorful poker chips">
           <div class="poker-case" aria-hidden="true">
             <span class="poker-case-handle"></span>
