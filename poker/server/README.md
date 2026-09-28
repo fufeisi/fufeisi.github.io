@@ -23,10 +23,10 @@ Production resources:
 
 - API Gateway REST API `riverlab-fullhouse-api`, API ID `lnupl1lrya`, stage `prod`, with `POST /decide`, `GET /health`, and CORS preflight routes.
 - Regional WAF ACL `riverlab-fullhouse-waf`, attached to that stage. It blocks `/decide` request bodies above 16 KiB and limits a source IP to 300 `/decide` requests per five minutes.
-- API Gateway throttles `/decide` at 10 requests per second with burst 20; Lambda has reserved concurrency 5 once the regional account quota allows it.
+- API Gateway throttles `/decide` at 2 requests per second with burst 5; Lambda has reserved concurrency 5 once the regional account quota allows it.
 - DynamoDB table `riverlab-fullhouse-sessions`, keyed by `session_id`, with TTL on `expires_at`.
 - Lambda accepts at most 5,000 valid AI decisions per UTC day; excess requests receive HTTP 429. The application also rejects `/decide` bodies above 64 KiB before parsing JSON.
-- CloudWatch alarms watch 4,000 daily invocations, concurrency of 4, any execution error, and any Lambda throttle. AWS Budgets emails at $5, $8, and $10 of actual monthly account spend and when the forecast reaches $10.
+- CloudWatch access logs record request IP, route, status, and user agent for seven days. Alarms watch 4,000 daily invocations, concurrency of 4, any execution error, and any Lambda throttle. AWS Budgets emails at $5, $8, and $10 of actual monthly account spend and when the forecast reaches $10.
 - Lambda logs expire after seven days. Its memory remains 1 GB with a 30 second timeout.
 
 The API Gateway URL is `https://lnupl1lrya.execute-api.us-west-2.amazonaws.com/prod`. The former public Lambda Function URL is disabled so it cannot bypass API Gateway and WAF. WAF has a fixed monthly charge for the web ACL and rules, in addition to per-request and API Gateway usage charges; the $10 budget is an alert, not a spending cap.
