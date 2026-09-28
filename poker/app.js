@@ -11,15 +11,21 @@
   const POSITIONS = ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'];
   const HERO_SEAT = 3;
   const BOT_NAMES = ['RiverBot', 'Moss', 'Cobalt', 'Juniper', 'North'];
-  const HUMAN_NAME = '你';
   const DEFAULT_STACK = 100;
   const HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const DEVICE_ID_KEY = 'riverlab:poker:device-id:v1';
   const HISTORY_KEY_PREFIX = 'riverlab:poker:history:v1:';
-  const STANDARD_AI_STYLE = { key: 'standard', label: '标准', tightness: 0, aggression: 0 };
+  const AI_STYLES = [
+    { key: 'tight-passive', tightness: 0.08, aggression: -0.16 },
+    { key: 'tight-aggressive', tightness: 0.08, aggression: 0.18 },
+    { key: 'loose-passive', tightness: -0.07, aggression: -0.14 },
+    { key: 'loose-aggressive', tightness: -0.07, aggression: 0.22 },
+    { key: 'balanced', tightness: 0, aggression: 0 }
+  ];
   const FH_RANGES = window.FULLHOUSE_RANGES || { openCharts: {}, defense: {}, vs3Bet: {}, openSizeBb: {} };
-  const CATEGORY_NAMES = ['高牌', '一对', '两对', '三条', '顺子', '同花', '葫芦', '四条', '同花顺'];
+  const CATEGORY_KEYS = ['highCard', 'onePair', 'twoPair', 'trips', 'straight', 'flush', 'fullHouse', 'quads', 'straightFlush'];
   const byId = (id) => document.getElementById(id);
+  const t = (key, variables) => window.PokerI18n.t(key, variables);
 
   const ui = {
     app: byId('app'),
@@ -44,7 +50,7 @@
     mode: 'full', handNumber: 0, players: [], deck: [], board: [], street: 'preflop',
     currentBet: 0, minRaise: 1, pending: [], actedSinceFullRaise: new Set(),
     buttonSeat: 0, currentActor: null, humanTurn: false, handComplete: false, handEnded: false,
-    currentReview: null, resultText: '', actionLog: [], playerStats: {},
+    currentReview: null, resultText: '', resultDescriptor: null, actionLog: [], aiStyles: null, playerStats: {},
     decisions: 0, matchedFrequencyTotal: 0, sessionNet: 0, completedHands: 0,
     lastAggressor: null, spotDecisionOnly: false, handStartStack: 100,
     historyRecordedHand: 0,
@@ -132,8 +138,16 @@
       position: heroPlayer.position,
       cards: heroPlayer.cards.map(cardText),
       board: state.board.map(cardText),
-      result: state.resultText,
-      action: review ? review.actionLabel : '',
+      result: formatResultDescriptor(),
+      resultKind: state.resultDescriptor?.kind || '',
+      resultKey: state.resultDescriptor?.key || '',
+      resultParams: state.resultDescriptor?.params || {},
+      resultPrefixKey: state.resultDescriptor?.prefixKey || '',
+      resultActionKey: state.resultDescriptor?.actionKey || '',
+      resultActionTarget: state.resultDescriptor?.actionTarget || 0,
+      action: review ? actionName(review.actionKey, review.actionTarget) : '',
+      actionKey: review?.actionKey || '',
+      actionTarget: review?.actionTarget || 0,
       matchPercent: review ? review.match : null,
       netBb: state.mode === 'full' ? roundChip(heroPlayer.chips - state.handStartStack) : null
     };
@@ -163,7 +177,7 @@
     if (!recent.length) {
       const empty = document.createElement('li');
       empty.className = 'history-empty';
-      empty.textContent = '完成一手牌或训练节点后，会显示在这里。';
+      empty.textContent = t('history.empty');
       ui.historyList.append(empty);
       return;
     }
@@ -173,21 +187,23 @@
       const heading = document.createElement('div');
       heading.className = 'history-entry-heading';
       const context = document.createElement('span');
-      context.textContent = `${new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(item.timestamp)} · ${modeName(item.mode)} · ${item.position}`;
+      context.textContent = `${new Intl.DateTimeFormat(window.PokerI18n.locale, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(item.timestamp)} · ${modeName(item.mode)} · ${item.position}`;
       const delta = document.createElement('strong');
       if (Number.isFinite(item.netBb)) {
         delta.textContent = `${item.netBb > 0 ? '+' : ''}${fmt(item.netBb)} bb`;
         delta.dataset.result = item.netBb > 0 ? 'positive' : item.netBb < 0 ? 'negative' : 'even';
       } else {
-        delta.textContent = Number.isFinite(item.matchPercent) ? `匹配 ${Math.round(item.matchPercent)}%` : '训练完成';
+        delta.textContent = Number.isFinite(item.matchPercent) ? t('history.matched', { percent: Math.round(item.matchPercent) }) : t('history.trainingComplete');
       }
       heading.append(context, delta);
       const cards = document.createElement('div');
       cards.className = 'history-cards';
-      cards.textContent = `手牌 ${item.cards.join(' ')}${item.board.length ? ` · 公共牌 ${item.board.join(' ')}` : ''}`;
+      cards.textContent = `${t('history.hand', { cards: item.cards.join(' ') })}${item.board.length ? ` · ${t('history.board', { cards: item.board.join(' ') })}` : ''}`;
       const result = document.createElement('div');
       result.className = 'history-result';
-      result.textContent = item.mode === 'full' && item.action ? `${item.action} · ${item.result}` : item.result;
+      const action = item.actionKey ? actionName(item.actionKey, item.actionTarget) : legacyActionLabel(item.action);
+      const resultText = historyResultLabel(item);
+      result.textContent = item.mode === 'full' && action ? `${action} · ${resultText}` : resultText;
       row.append(heading, cards, result);
       ui.historyList.append(row);
     }
@@ -224,7 +240,7 @@
   function suitData(suit) { return SUITS.find((item) => item.key === suit); }
   function cardText(card) { return `${rankText(card.rank)}${suitData(card.suit).symbol}`; }
   function cardMarkup(card, faceDown = false) {
-    if (faceDown || !card) return '<div class="card back" aria-label="暗牌"></div>';
+    if (faceDown || !card) return `<div class="card back" aria-label="${t('card.hidden')}"></div>`;
     const data = suitData(card.suit);
     return `<div class="card${data.red ? ' red' : ''}" aria-label="${cardText(card)}"><span class="card-rank">${rankText(card.rank)}</span><span class="card-pip">${data.symbol}</span></div>`;
   }
@@ -239,10 +255,76 @@
   function canAct(player) { return player && !player.folded && !player.allIn && player.chips > 0; }
   function hero() { return state.players.find((player) => player.human); }
   function streetName(street) {
-    return ({ preflop: '翻牌前', flop: '翻牌圈', turn: '转牌圈', river: '河牌圈' })[street] || '摊牌';
+    return t(({ preflop: 'street.preflop', flop: 'street.flop', turn: 'street.turn', river: 'street.river' })[street] || 'street.showdown');
   }
   function modeName(mode = state.mode) {
-    return ({ full: '整手练习', preflop: '翻前专项', postflop: '翻后专项' })[mode];
+    return t(({ full: 'mode.full', preflop: 'mode.preflop', postflop: 'mode.postflop' })[mode] || 'mode.full');
+  }
+  function categoryName(index) { return t(`hand.${CATEGORY_KEYS[index] || CATEGORY_KEYS[0]}`); }
+  function formatResultDescriptor(descriptor = state.resultDescriptor) {
+    if (!descriptor) return state.resultText || '';
+    if (descriptor.kind === 'training') {
+      const action = descriptor.actionKey ? actionName(descriptor.actionKey, descriptor.actionTarget) : t('result.noDecision');
+      return t('result.trainingFinished', { prefix: t(descriptor.prefixKey), action });
+    }
+    const params = { ...(descriptor.params || {}) };
+    if (params.handKey) params.hand = t(params.handKey);
+    return t(descriptor.key, params);
+  }
+
+  function legacyActionLabel(value) {
+    if (!value || window.PokerI18n.language === 'zh-CN') return value || '';
+    if (value === '弃牌') return t('action.fold');
+    if (value === '过牌') return t('action.check');
+    if (value === '全下') return t('action.allin');
+    if (value === '跟注') return t('action.call');
+    let match = value.match(/^跟注\s+(.+)$/);
+    if (match) return t('action.callAmount', { amount: match[1] });
+    match = value.match(/^下注至\s+(.+)\s+bb$/);
+    if (match) return t('action.betTo', { amount: match[1] });
+    match = value.match(/^加注至\s+(.+)\s+bb$/);
+    if (match) return t('action.raiseTo', { amount: match[1] });
+    return value;
+  }
+
+  function legacyResultLabel(value) {
+    if (!value || window.PokerI18n.language === 'zh-CN') return value || '';
+    const exact = {
+      '本手结束': t('result.handComplete'),
+      '本手无决策': t('result.noDecision'),
+      '翻前节点结束': t('result.preflopNodeEnded'),
+      '训练节点完成': t('result.trainingNodeEnded'),
+      '翻前专项完成': t('result.preflopModeDone'),
+      '翻后专项完成': t('result.postflopModeDone')
+    };
+    if (exact[value]) return exact[value];
+    let match = value.match(/^你赢下\s+(.+)\s+bb$/);
+    if (match) return t('result.youWin', { amount: match[1] });
+    match = value.match(/^(.+) 赢下底池$/);
+    if (match) return t('result.botWinsPot', { name: match[1] });
+    match = value.match(/^摊牌平分 · 你拿回\s+(.+)\s+bb$/);
+    if (match) return t('result.split', { amount: match[1] });
+    match = value.match(/^你以(.+)赢下\s+(.+)\s+bb$/);
+    if (match) return t('result.heroWins', { hand: legacyHandLabel(match[1]), amount: match[2] });
+    match = value.match(/^(.+) 以(.+)赢下底池$/);
+    if (match) return t('result.opponentWins', { name: match[1], hand: legacyHandLabel(match[2]) });
+    return value.replace(' · 本手无决策', ` · ${t('result.noDecision')}`);
+  }
+
+  function legacyHandLabel(value) {
+    const index = ['高牌', '一对', '两对', '三条', '顺子', '同花', '葫芦', '四条', '同花顺'].indexOf(value);
+    return index < 0 ? value : categoryName(index);
+  }
+
+  function historyResultLabel(item) {
+    if (item.resultKind === 'training') {
+      return formatResultDescriptor({
+        kind: 'training', prefixKey: item.resultPrefixKey,
+        actionKey: item.resultActionKey, actionTarget: item.resultActionTarget
+      });
+    }
+    if (item.resultKey) return formatResultDescriptor({ key: item.resultKey, params: item.resultParams || {} });
+    return legacyResultLabel(item.result);
   }
   function posIndex(position) { return Math.max(0, POSITIONS.indexOf(position)); }
   function selectedHeroPosition() {
@@ -258,13 +340,19 @@
     }
   }
 
+  function sampleAIStyles() {
+    return Array.from({ length: 5 }, () => AI_STYLES[randomInt(AI_STYLES.length)]);
+  }
+
   function makePlayers(stack) {
-    const names = [BOT_NAMES[0], BOT_NAMES[1], BOT_NAMES[2], HUMAN_NAME, BOT_NAMES[3], BOT_NAMES[4]];
+    state.aiStyles = sampleAIStyles();
+    const names = [BOT_NAMES[0], BOT_NAMES[1], BOT_NAMES[2], t('player.you'), BOT_NAMES[3], BOT_NAMES[4]];
+    let botIndex = 0;
     state.players = names.map((name, seat) => ({
       id: `p${seat}`, seat, name, human: seat === HERO_SEAT, position: '',
       cards: [], chips: stack, committed: 0, streetBet: 0, folded: false,
-      allIn: false, actionLabel: '',
-      aiStyle: seat === HERO_SEAT ? null : STANDARD_AI_STYLE
+      allIn: false, actionLabel: '', actionLabelKey: '', actionLabelParams: {},
+      aiStyle: seat === HERO_SEAT ? null : state.aiStyles[botIndex++]
     }));
   }
 
@@ -313,6 +401,7 @@
     state.handEnded = false;
     state.currentReview = null;
     state.resultText = '';
+    state.resultDescriptor = null;
     state.lastAggressor = null;
     state.actionLog = [];
     state.spotDecisionOnly = state.mode !== 'full';
@@ -414,7 +503,7 @@
     if (alivePlayers().length <= 1) { awardUncontested(); return; }
     if (state.pending.length === 0) {
       if (state.mode === 'preflop' && state.street !== 'preflop') {
-        finishTrainingSpot('翻前节点结束');
+        finishTrainingSpot('result.preflopNodeEnded');
         return;
       }
       nextStreet();
@@ -439,18 +528,23 @@
     }, 330 + randomInt(220));
   }
 
-  function finishTrainingSpot(prefix = '训练节点完成') {
+  function finishTrainingSpot(prefixKey = 'result.trainingNodeEnded') {
     if (state.handComplete) return;
     state.handComplete = true;
     state.humanTurn = false;
     state.currentActor = null;
     state.completedHands += 1;
-    state.resultText = `${prefix} · ${state.currentReview ? state.currentReview.actionLabel : '本手无决策'}`;
+    state.resultDescriptor = {
+      kind: 'training', prefixKey,
+      actionKey: state.currentReview?.actionKey || '',
+      actionTarget: state.currentReview?.actionTarget || 0
+    };
+    state.resultText = formatResultDescriptor();
     recordCompletedHistory();
     render();
   }
 
-  function finishHand(text) {
+  function finishHand(descriptor = { key: 'result.handComplete', params: {} }) {
     if (state.handComplete) return;
     state.handComplete = true;
     state.handEnded = true;
@@ -459,18 +553,20 @@
     state.completedHands += 1;
     const heroPlayer = hero();
     state.sessionNet = roundChip(state.sessionNet + heroPlayer.chips - state.handStartStack);
-    state.resultText = text;
+    state.resultDescriptor = { kind: 'simple', ...descriptor };
+    state.resultText = formatResultDescriptor();
     recordCompletedHistory();
     render();
   }
 
   function awardUncontested() {
     const winner = alivePlayers()[0];
-    if (!winner) { finishHand('本手结束'); return; }
+    if (!winner) { finishHand({ key: 'result.handComplete' }); return; }
     const amount = sumPot();
     winner.chips = roundChip(winner.chips + amount);
-    const suffix = winner.human ? `你赢下 ${fmt(amount)} bb` : `${winner.name} 赢下底池`;
-    finishHand(suffix);
+    finishHand(winner.human
+      ? { key: 'result.youWin', params: { amount: fmt(amount) } }
+      : { key: 'result.botWinsPot', params: { name: winner.name } });
   }
 
   function combinations(cards, choose, start = 0, selected = [], out = []) {
@@ -534,7 +630,7 @@
     return 0;
   }
 
-  function evaluateLabel(score) { return CATEGORY_NAMES[score?.[0] || 0]; }
+  function evaluateLabel(score) { return categoryName(score?.[0] || 0); }
 
   function rankCode(rank) { return rank === 14 ? 'A' : rank === 13 ? 'K' : rank === 12 ? 'Q' : rank === 11 ? 'J' : rank === 10 ? 'T' : String(rank); }
 
@@ -757,8 +853,8 @@
     const profile = preflopRangeProfile(position);
     ui.app.classList.toggle('postflop-mode', state.mode === 'postflop');
     ui.preflopRange.value = String(state.preflopExtraPercent);
-    ui.rangeExtraValue.textContent = `扩宽 +${state.preflopExtraPercent}%`;
-    ui.rangePosition.textContent = position === 'BB' ? 'BB · 防守后位开池' : `${position} · 开池`;
+    ui.rangeExtraValue.textContent = t('range.gtoExtra', { percent: state.preflopExtraPercent });
+    ui.rangePosition.textContent = position === 'BB' ? t('range.bbOpen') : `${position} · ${t('range.open')}`;
     ui.rangeBase.textContent = percentageText(profile.baseMass / 1326 * 100);
     ui.rangeCurrent.textContent = percentageText(profile.totalMass / 1326 * 100);
   }
@@ -933,7 +1029,7 @@
   function normalizeDistribution(entries) {
     const positive = entries.filter((item) => item.frequency > 0);
     const total = positive.reduce((sum, item) => sum + item.frequency, 0);
-    if (!positive.length) return [{ key: 'check', label: '过牌', frequency: 100 }];
+    if (!positive.length) return [{ key: 'check', label: t('action.check'), frequency: 100 }];
     const rows = positive.map((item) => ({ ...item, frequency: Math.floor(item.frequency / total * 100) }));
     const remaining = 100 - rows.reduce((sum, item) => sum + item.frequency, 0);
     rows[0].frequency += remaining;
@@ -947,13 +1043,13 @@
       if (toCall <= 0.001) {
         if (player.position === 'BB') {
           const raise = strength > 0.84 ? 0.27 : strength > 0.68 ? 0.12 : 0.035;
-          return normalizeDistribution([{ key: 'check', label: '过牌', frequency: 1 - raise }, { key: 'raise', label: '加注', frequency: raise }]);
+          return normalizeDistribution([{ key: 'check', label: t('action.check'), frequency: 1 - raise }, { key: 'raise', label: t('action.raise'), frequency: raise }]);
         }
         const thresholds = { UTG: 0.74, HJ: 0.69, CO: 0.63, BTN: 0.56, SB: 0.59, BB: 0.62 };
         const threshold = thresholds[player.position] || 0.64;
         let open = clamp(0.08 + (strength - threshold) * 2.8, 0.035, 0.97);
         if (strength > threshold + 0.12) open = Math.max(open, 0.88);
-        return normalizeDistribution([{ key: 'fold', label: '弃牌', frequency: 1 - open }, { key: 'bet', label: '加注', frequency: open }]);
+        return normalizeDistribution([{ key: 'fold', label: t('action.fold'), frequency: 1 - open }, { key: 'bet', label: t('action.raise'), frequency: open }]);
       }
       const potOdds = toCall / Math.max(0.01, sumPot() + toCall);
       const aggressorIndex = posIndex(state.lastAggressor?.position || 'UTG');
@@ -961,10 +1057,10 @@
       const latePosition = ['BTN', 'CO'].includes(player.position) ? 0.035 : 0;
       const required = clamp(0.39 + earlyPressure + (potOdds - 0.22) * 0.42 - latePosition, 0.31, 0.68);
       const equityProxy = clamp(0.5 + (strength - 0.65) * 1.2, 0.19, 0.88);
-      if (equityProxy >= required + 0.19) return normalizeDistribution([{ key: 'fold', label: '弃牌', frequency: 0.04 }, { key: 'call', label: '跟注', frequency: 0.45 }, { key: 'raise', label: '再加注', frequency: 0.51 }]);
-      if (equityProxy >= required + 0.03) return normalizeDistribution([{ key: 'fold', label: '弃牌', frequency: 0.16 }, { key: 'call', label: '跟注', frequency: 0.76 }, { key: 'raise', label: '再加注', frequency: 0.08 }]);
-      if (equityProxy >= required - 0.11) return normalizeDistribution([{ key: 'fold', label: '弃牌', frequency: 0.55 }, { key: 'call', label: '跟注', frequency: 0.43 }, { key: 'raise', label: '再加注', frequency: 0.02 }]);
-      return normalizeDistribution([{ key: 'fold', label: '弃牌', frequency: 0.9 }, { key: 'call', label: '跟注', frequency: 0.1 }]);
+      if (equityProxy >= required + 0.19) return normalizeDistribution([{ key: 'fold', label: t('action.fold'), frequency: 0.04 }, { key: 'call', label: t('action.call'), frequency: 0.45 }, { key: 'raise', label: t('action.reraise'), frequency: 0.51 }]);
+      if (equityProxy >= required + 0.03) return normalizeDistribution([{ key: 'fold', label: t('action.fold'), frequency: 0.16 }, { key: 'call', label: t('action.call'), frequency: 0.76 }, { key: 'raise', label: t('action.reraise'), frequency: 0.08 }]);
+      if (equityProxy >= required - 0.11) return normalizeDistribution([{ key: 'fold', label: t('action.fold'), frequency: 0.55 }, { key: 'call', label: t('action.call'), frequency: 0.43 }, { key: 'raise', label: t('action.reraise'), frequency: 0.02 }]);
+      return normalizeDistribution([{ key: 'fold', label: t('action.fold'), frequency: 0.9 }, { key: 'call', label: t('action.call'), frequency: 0.1 }]);
     }
 
     const equity = currentEquity(player, 30);
@@ -974,13 +1070,13 @@
     if (toCall <= 0.001) {
       let bet = clamp(0.19 + (equity - 0.42) * 1.18 + positionAdvantage + wetness * 0.2, 0.08, 0.9);
       if (equity > 0.78) bet = Math.max(bet, 0.68);
-      return normalizeDistribution([{ key: 'check', label: '过牌', frequency: 1 - bet }, { key: 'bet', label: '下注', frequency: bet }]);
+      return normalizeDistribution([{ key: 'check', label: t('action.check'), frequency: 1 - bet }, { key: 'bet', label: t('action.bet'), frequency: bet }]);
     }
     const potOdds = toCall / Math.max(0.01, sumPot() + toCall);
     let call = clamp(0.17 + (equity - potOdds) * 2.25 + wetness * 0.12, 0.02, 0.9);
     let raise = equity > 0.67 ? clamp(0.1 + (equity - 0.67) * 0.9 + wetness * 0.1, 0.07, 0.5) : wetness > 0.24 && equity > 0.42 ? 0.11 : 0.025;
     if (call + raise > 0.96) { const scale = 0.96 / (call + raise); call *= scale; raise *= scale; }
-    return normalizeDistribution([{ key: 'fold', label: '弃牌', frequency: 1 - call - raise }, { key: 'call', label: '跟注', frequency: call }, { key: 'raise', label: '加注', frequency: raise }]);
+    return normalizeDistribution([{ key: 'fold', label: t('action.fold'), frequency: 1 - call - raise }, { key: 'call', label: t('action.call'), frequency: call }, { key: 'raise', label: t('action.raise'), frequency: raise }]);
   }
 
   function raiseChoice(player, target) {
@@ -1344,12 +1440,24 @@
   }
 
   function actionName(action, target = 0) {
-    if (action === 'fold') return '弃牌';
-    if (action === 'check') return '过牌';
-    if (action === 'call') return '跟注';
-    if (action === 'bet') return `下注至 ${fmt(target)} bb`;
-    if (action === 'raise') return `加注至 ${fmt(target)} bb`;
+    if (action === 'fold' || action === 'check' || action === 'call' || action === 'all_in') {
+      return t(action === 'all_in' ? 'action.allin' : `action.${action}`);
+    }
+    if (action === 'bet') return target === null ? t('action.bet') : t('action.betTo', { amount: fmt(target) });
+    if (action === 'raise') return target === null ? t('action.raise') : t('action.raiseTo', { amount: fmt(target) });
     return action;
+  }
+
+  function setPlayerActionLabel(player, key, params = {}) {
+    player.actionLabelKey = key;
+    player.actionLabelParams = params;
+    player.actionLabel = t(key, params);
+  }
+
+  function playerActionLabel(player) {
+    if (player.folded) return t('action.fold');
+    if (player.allIn) return t('action.allin');
+    return player.actionLabelKey ? t(player.actionLabelKey, player.actionLabelParams) : legacyActionLabel(player.actionLabel);
   }
 
   function applyAction(player, action, target = 0) {
@@ -1359,14 +1467,15 @@
     let paidAmount = 0;
     if (action === 'fold') {
       player.folded = true;
-      player.actionLabel = '弃牌';
+      setPlayerActionLabel(player, 'action.fold');
       state.pending.shift();
       state.actedSinceFullRaise.add(player.id);
     } else if (action === 'check' || action === 'call') {
       const due = Math.max(0, state.currentBet - player.streetBet);
       const paid = setCommitment(player, action === 'check' ? 0 : due);
       paidAmount = paid;
-      player.actionLabel = paid > 0 ? `跟注 ${fmt(paid)}` : '过牌';
+      if (paid > 0) setPlayerActionLabel(player, 'action.callAmount', { amount: fmt(paid) });
+      else setPlayerActionLabel(player, 'action.check');
       state.pending.shift();
       state.actedSinceFullRaise.add(player.id);
     } else {
@@ -1379,7 +1488,7 @@
       paidAmount = paid;
       const actualTotal = player.streetBet;
       const raiseSize = actualTotal - oldBet;
-      player.actionLabel = actionName(action, actualTotal);
+      setPlayerActionLabel(player, action === 'bet' ? 'action.betTo' : 'action.raiseTo', { amount: fmt(actualTotal) });
       state.lastAggressor = player;
       if (raiseSize >= state.minRaise - 0.001) {
         state.minRaise = Math.max(0.5, raiseSize);
@@ -1396,7 +1505,7 @@
         state.pending.shift();
         state.actedSinceFullRaise.add(player.id);
       }
-      if (paid <= 0.001) { player.actionLabel = '过牌'; }
+      if (paid <= 0.001) setPlayerActionLabel(player, 'action.check');
     }
     const loggedAction = player.allIn && isAggressiveAction(action) ? 'all_in' : action;
     const stats = state.playerStats[player.id] || (state.playerStats[player.id] = { actions: 0, raises: 0, allins: 0, facedBet: 0, callVsBet: 0 });
@@ -1430,10 +1539,12 @@
       board: state.board.slice(),
       cards: hero().cards.slice(),
       action: selectedKey,
-      actionLabel: actionName(action, target),
+      actionKey: selectedKey,
+      actionTarget: target,
+      actionLabel: actionName(selectedKey, selectedKey === 'bet' || selectedKey === 'raise' ? target : null),
       match,
       benchmark,
-      handLabel: state.street === 'preflop' ? '' : evaluateLabel(score),
+      handCategoryKey: state.street === 'preflop' ? '' : CATEGORY_KEYS[score?.[0] || 0],
       equity,
       pot: sumPot(),
       toCall: Math.max(0, state.currentBet - hero().streetBet)
@@ -1448,7 +1559,7 @@
     recordHumanDecision(action, target, benchmark);
     state.humanTurn = false;
     if (state.mode !== 'full') {
-      finishTrainingSpot(state.mode === 'preflop' ? '翻前专项完成' : '翻后专项完成');
+      finishTrainingSpot(state.mode === 'preflop' ? 'result.preflopModeDone' : 'result.postflopModeDone');
       return;
     }
     applyAction(player, action, target);
@@ -1492,7 +1603,6 @@
   function showdown() {
     if (state.handComplete) return;
     const live = alivePlayers();
-    const labels = new Map(live.map((player) => [player.id, evaluateLabel(evaluateHand([...player.cards, ...state.board]))]));
     const awards = distributePots();
     const heroPlayer = hero();
     const heroAward = awards.get(heroPlayer.id) || 0;
@@ -1500,12 +1610,20 @@
     let outcome;
     if (heroAward > 0 && hero.folded === false) {
       const tied = live.some((player) => player.id !== heroPlayer.id && compareScores(evaluateHand([...player.cards, ...state.board]), heroScore) === 0);
-      outcome = tied ? `摊牌平分 · 你拿回 ${fmt(heroAward)} bb` : `你以${evaluateLabel(heroScore)}赢下 ${fmt(heroAward)} bb`;
+      outcome = tied
+        ? { key: 'result.split', params: { amount: fmt(heroAward) } }
+        : { key: 'result.heroWins', params: { handKey: `hand.${CATEGORY_KEYS[heroScore?.[0] || 0]}`, amount: fmt(heroAward) } };
     } else {
       const winner = live.sort((a, b) => (awards.get(b.id) || 0) - (awards.get(a.id) || 0))[0];
-      outcome = `${winner?.name || '对手'} 以${labels.get(winner?.id) || '牌力'}赢下底池`;
+      const winnerScore = winner ? evaluateHand([...winner.cards, ...state.board]) : null;
+      outcome = { key: 'result.opponentWins', params: {
+        name: winner?.name || t('opponent.generic'), handKey: `hand.${CATEGORY_KEYS[winnerScore?.[0] || 0]}`
+      } };
     }
-    for (const player of live) player.actionLabel = labels.get(player.id);
+    for (const player of live) {
+      const score = evaluateHand([...player.cards, ...state.board]);
+      setPlayerActionLabel(player, `hand.${CATEGORY_KEYS[score?.[0] || 0]}`);
+    }
     finishHand(outcome);
   }
 
@@ -1523,10 +1641,10 @@
     }
     const buttons = [...document.querySelectorAll('.quick-size')];
     if (state.street === 'preflop') {
-      const labels = ['2.2×', '2.5×', '3×', '全下'];
+      const labels = ['2.2×', '2.5×', '3×', t('action.allin')];
       buttons.forEach((button, index) => { button.textContent = labels[index]; button.dataset.size = ['2.2', '2.5', '3', 'jam'][index]; });
     } else {
-      const labels = ['33%', '66%', '底池', '全下'];
+      const labels = ['33%', '66%', t('size.pot'), t('action.allin')];
       buttons.forEach((button, index) => { button.textContent = labels[index]; button.dataset.size = ['33', '66', '100', 'jam'][index]; });
     }
   }
@@ -1544,11 +1662,11 @@
     ui.call.hidden = toCall <= 0.001;
     ui.pass.disabled = !actionable;
     ui.call.disabled = !actionable;
-    ui.call.textContent = `跟注 ${fmt(toCall)} bb`;
+    ui.call.textContent = t('action.callAmount', { amount: fmt(toCall) });
     const raiseAllowed = !state.actedSinceFullRaise.has(player.id) && player.chips > toCall + 0.001;
     const maxRaise = player.streetBet + player.chips;
     ui.raise.disabled = !actionable || !raiseAllowed || maxRaise <= state.currentBet + 0.001;
-    ui.raise.textContent = state.currentBet > 0 ? '加注' : (state.street === 'preflop' ? '加注' : '下注');
+    ui.raise.textContent = state.currentBet > 0 || state.street === 'preflop' ? t('action.raise') : t('action.bet');
     ui.raiseInput.disabled = !actionable || !raiseAllowed;
     document.querySelectorAll('.quick-size').forEach((button) => { button.disabled = !actionable || !raiseAllowed; });
     updateRaiseSizing();
@@ -1559,64 +1677,78 @@
       const isActing = !state.handComplete && state.currentActor === player.id;
       const faceUp = player.human || state.handEnded;
       const cardMarkupText = player.cards.map((card) => cardMarkup(card, !faceUp)).join('');
-      const dealer = player.position === 'BTN' ? '<span class="dealer" title="庄家">D</span>' : '';
-      const action = player.actionLabel ? `<span class="seat-state">${player.folded ? '弃牌' : player.allIn ? '全下' : player.actionLabel}</span>` : '';
-      const bet = player.streetBet > 0.001 && !player.actionLabel && !state.handComplete ? `<div class="bet-chip">${fmt(player.streetBet)} bb</div>` : '';
-      const styleTag = player.aiStyle ? `<span class="ai-style-tag" title="${player.aiStyle.label}">${player.aiStyle.label}</span>` : '';
-      const name = player.human ? '你' : player.name;
+      const dealer = player.position === 'BTN' ? `<span class="dealer" title="${t('table.dealer')}">D</span>` : '';
+      const currentAction = playerActionLabel(player);
+      const action = currentAction ? `<span class="seat-state">${currentAction}</span>` : '';
+      const bet = player.streetBet > 0.001 && !currentAction && !state.handComplete ? `<div class="bet-chip">${fmt(player.streetBet)} bb</div>` : '';
+      const styleName = player.aiStyle ? t(`style.${player.aiStyle.key}`) : '';
+      const styleShort = player.aiStyle ? t(`style.${player.aiStyle.key}.short`) : '';
+      const styleTag = player.aiStyle ? `<span class="ai-style-tag" title="${styleName}">${styleShort}</span>` : '';
+      const name = player.human ? t('player.you') : player.name;
       const activeClass = isActing ? (player.human ? ' acting acting-human' : ' acting') : '';
-      return `<div class="seat seat-${player.seat + 1}${player.human ? ' hero' : ''}${player.folded ? ' folded' : ''}${state.handEnded ? ' revealed' : ''}${activeClass}"><div class="nameplate">${dealer}<span class="seat-name">${name}</span>${styleTag}<span class="seat-position">· ${positionLabel(player.position)}</span></div><div class="stack">${fmt(player.chips)} bb${player.allIn ? ' · 全下' : ''}</div>${action}${bet}<div class="mini-cards">${cardMarkupText}</div></div>`;
+      const allIn = player.allIn ? ` · ${t('action.allin')}` : '';
+      return `<div class="seat seat-${player.seat + 1}${player.human ? ' hero' : ''}${player.folded ? ' folded' : ''}${state.handEnded ? ' revealed' : ''}${activeClass}"><div class="nameplate">${dealer}<span class="seat-name">${name}</span>${styleTag}<span class="seat-position">· ${positionLabel(player.position)}</span></div><div class="stack">${fmt(player.chips)} bb${allIn}</div>${action}${bet}<div class="mini-cards">${cardMarkupText}</div></div>`;
     }).join('');
   }
 
   function renderBoard() {
-    ui.board.innerHTML = state.board.length ? state.board.map((card) => cardMarkup(card)).join('') : '<span class="board-placeholder">公共牌</span>';
+    ui.board.innerHTML = state.board.length ? state.board.map((card) => cardMarkup(card)).join('') : `<span class="board-placeholder">${t('board.empty')}</span>`;
   }
 
-  function boardSummary(board) { return board.length ? board.map(cardText).join('  ') : '等待翻牌'; }
+  function boardSummary(board) { return board.length ? board.map(cardText).join('  ') : t('board.waiting'); }
 
   function renderFeedback() {
     const player = hero();
     const currentPot = sumPot();
     const postflopActors = postflopOrder(state.buttonSeat).map((seat) => state.players[seat]).filter((item) => !item.folded && !item.allIn);
     const inPosition = postflopActors[postflopActors.length - 1]?.id === player.id;
-    const positionContext = state.street === 'preflop' ? '翻前位置' : inPosition ? '有位置' : '无位置';
+    const positionContext = state.street === 'preflop' ? t('node.preflopPosition') : inPosition ? t('node.inPosition') : t('node.outOfPosition');
     const nodeLines = [
-      ['位置', `${player.position} · ${positionContext}`],
-      ['手牌', player.cards.map(cardText).join('  ')],
-      ['牌面', boardSummary(state.board)],
-      ['底池 / 有效筹码', `${fmt(currentPot)} bb / ${fmt(player.chips)} bb`]
+      [t('node.position'), `${player.position} · ${positionContext}`],
+      [t('node.hand'), player.cards.map(cardText).join('  ')],
+      [t('node.board'), boardSummary(state.board)],
+      [t('node.potStack'), `${fmt(currentPot)} bb / ${fmt(player.chips)} bb`]
     ];
     ui.nodeDetails.innerHTML = nodeLines.map(([label, value]) => `<div class="spot-line"><span>${label}</span><span>${value}</span></div>`).join('');
-    ui.feedbackState.textContent = state.handComplete ? '节点结束' : state.humanTurn ? '轮到你' : 'AI行动中';
+    ui.feedbackState.textContent = state.handComplete ? t('feedback.nodeEnded') : state.humanTurn ? t('feedback.yourTurn') : t('feedback.aiActing');
     if (state.currentReview) {
       const review = state.currentReview;
-      const equityText = review.equity === null ? '翻前范围估算' : `随机手牌权益估算 ${Math.round(review.equity * 100)}%`;
-      const strengthText = review.handLabel ? `当前牌力：${review.handLabel}。` : '翻前手牌强度结合位置与下注压力评估。';
-      ui.decisionBox.innerHTML = `<div class="decision-kicker">${streetName(review.street)} · 你的选择</div><strong>${review.actionLabel} · 参考频率 ${review.match}%</strong><p>${strengthText}${equityText}。参考频率是本地简化模型的训练提示。</p>`;
-      ui.strategyTitle.textContent = '本地参考频率';
-      ui.strategyList.innerHTML = review.benchmark.map((item) => `<div class="strategy-row"><span>${item.label}</span><div class="bar"><i style="width:${item.frequency}%"></i></div><b>${item.frequency}%</b></div>`).join('');
+      const equityText = review.equity === null ? t('review.preflopEquity') : t('review.randomEquity', { percent: Math.round(review.equity * 100) });
+      const strengthText = review.handCategoryKey ? t('review.handStrength', { hand: t(`hand.${review.handCategoryKey}`) }) : t('review.preflopStrength');
+      const chosenAction = actionName(review.actionKey, review.actionKey === 'bet' || review.actionKey === 'raise' ? review.actionTarget : null);
+      const reviewSummary = [strengthText, equityText, t('review.approximation')].join(t('review.sentenceSeparator'));
+      ui.decisionBox.innerHTML = `<div class="decision-kicker">${streetName(review.street)} · ${t('review.yourChoice')}</div><strong>${chosenAction} · ${t('review.reference', { percent: review.match })}</strong><p>${reviewSummary}</p>`;
+      ui.strategyTitle.textContent = t('review.localFrequency');
+      ui.strategyList.innerHTML = review.benchmark.map((item) => `<div class="strategy-row"><span>${strategyActionName(item.key, review.street)}</span><div class="bar"><i style="width:${item.frequency}%"></i></div><b>${item.frequency}%</b></div>`).join('');
     } else if (state.handComplete) {
-      ui.decisionBox.innerHTML = `<div class="decision-kicker">${modeName()} · 本手结果</div><strong>${state.resultText || '本手结束'}</strong><p>${state.mode === 'full' ? `每手以 ${DEFAULT_STACK} bb 开始。发下一手继续练习。` : '参考频率可帮助比较不同选择；本专项不模拟完整后续行动。'}</p>`;
-      ui.strategyTitle.textContent = '参考频率';
-      ui.strategyList.innerHTML = '<div class="empty-strategy">发下一手进入新的练习节点</div>';
+      ui.decisionBox.innerHTML = `<div class="decision-kicker">${modeName()} · ${t('review.handResult')}</div><strong>${formatResultDescriptor() || t('result.handComplete')}</strong><p>${state.mode === 'full' ? t('review.fullHandStarted', { stack: DEFAULT_STACK }) : t('review.specialtyNote')}</p>`;
+      ui.strategyTitle.textContent = t('review.frequency');
+      ui.strategyList.innerHTML = `<div class="empty-strategy">${t('review.waitNext')}</div>`;
     } else if (state.humanTurn) {
       const toCall = currentToCall(player);
-      const prompt = toCall > 0 ? `需要跟注 ${fmt(toCall)} bb。可以弃牌、跟注或加注。` : '当前无人下注。可以过牌或选择下注尺寸。';
-      ui.decisionBox.innerHTML = `<div class="decision-kicker">${streetName(state.street)} · 轮到你</div><strong>${toCall > 0 ? `面对 ${fmt(toCall)} bb` : '行动空间'} </strong><p>${prompt}选择后显示参考频率。</p>`;
-      ui.strategyTitle.textContent = '参考行动频率';
-      ui.strategyList.innerHTML = '<div class="empty-strategy">做出选择后显示本地策略参考</div>';
+      const prompt = toCall > 0 ? t('review.toCall', { amount: fmt(toCall) }) : t('review.noBet');
+      ui.decisionBox.innerHTML = `<div class="decision-kicker">${streetName(state.street)} · ${t('feedback.yourTurn')}</div><strong>${toCall > 0 ? t('review.facing', { amount: fmt(toCall) }) : t('review.actionSpot')}</strong><p>${prompt} ${t('review.chooseFrequency')}</p>`;
+      ui.strategyTitle.textContent = t('strategy.title');
+      ui.strategyList.innerHTML = `<div class="empty-strategy">${t('review.localStrategy')}</div>`;
     } else {
       const actor = state.players.find((item) => item.id === state.currentActor);
-      ui.decisionBox.innerHTML = `<div class="decision-kicker">${streetName(state.street)} · ${modeName()}</div><strong>${actor ? `${actor.name} 正在行动` : '等待行动'}</strong><p>你的位置是 ${player.position}，手牌 ${player.cards.map(cardText).join(' ')}。留意对手下注和底池变化。</p>`;
-      ui.strategyTitle.textContent = '参考行动频率';
-      ui.strategyList.innerHTML = '<div class="empty-strategy">轮到你时选择行动</div>';
+      const actorName = actor?.human ? t('player.you') : actor?.name;
+      const actorPrompt = actor ? t('status.actor', { name: actorName }) : t('status.waiting');
+      ui.decisionBox.innerHTML = `<div class="decision-kicker">${streetName(state.street)} · ${modeName()}</div><strong>${actorPrompt}</strong><p>${t('review.opponentPrompt', { position: player.position, cards: player.cards.map(cardText).join(' ') })}</p>`;
+      ui.strategyTitle.textContent = t('strategy.title');
+      ui.strategyList.innerHTML = `<div class="empty-strategy">${t('review.yourAction')}</div>`;
     }
+  }
+
+  function strategyActionName(action, street) {
+    if (action === 'bet' && street === 'preflop') return t('action.raise');
+    if (action === 'raise' && street === 'preflop') return t('action.reraise');
+    return actionName(action, null);
   }
 
   function render() {
     const heroPlayer = hero();
-    ui.handId.textContent = `手牌 #${String(state.handNumber).padStart(4, '0')}`;
+    ui.handId.textContent = t('table.handId', { number: String(state.handNumber).padStart(4, '0') });
     ui.streetPill.textContent = streetName(state.street);
     ui.pot.textContent = `${fmt(sumPot())} bb`;
     renderBoard();
@@ -1624,21 +1756,25 @@
     renderControls();
     renderFeedback();
     renderPreflopFilter();
-    if (state.handComplete) ui.tableStatus.innerHTML = `<strong>${state.resultText}</strong>`;
+    if (state.handComplete) ui.tableStatus.innerHTML = `<strong>${formatResultDescriptor()}</strong>`;
     else if (state.currentActor === heroPlayer.id) {
       const due = currentToCall(heroPlayer);
-      ui.tableStatus.innerHTML = due > 0 ? `轮到你行动 · <strong>面对 ${fmt(due)} bb</strong>` : '轮到你行动 · <strong>可以过牌或下注</strong>';
+      ui.tableStatus.innerHTML = due > 0
+        ? `${t('status.yourTurnFacing', { amount: fmt(due) })}`
+        : t('status.yourTurnOpen');
     } else {
       const actor = state.players.find((player) => player.id === state.currentActor);
-      ui.tableStatus.innerHTML = actor ? `${actor.name} 正在行动…` : '等待行动…';
+      ui.tableStatus.textContent = actor ? t('status.actor', { name: actor.human ? t('player.you') : actor.name }) : t('status.waiting');
     }
     ui.handCount.textContent = String(Math.max(1, state.handNumber)).padStart(2, '0');
     ui.accuracy.textContent = state.decisions ? `${Math.round(state.matchedFrequencyTotal / state.decisions)}%` : '—';
-    ui.sessionResult.textContent = state.mode === 'full' ? `${state.sessionNet > 0 ? '+' : ''}${fmt(state.sessionNet)} bb` : '训练点';
+    ui.sessionResult.textContent = state.mode === 'full' ? `${state.sessionNet > 0 ? '+' : ''}${fmt(state.sessionNet)} bb` : t('status.trainingSpots');
     ui.sessionResult.style.color = state.sessionNet > 0 ? 'var(--lime)' : state.sessionNet < 0 ? 'var(--red)' : '';
-    ui.nextHand.innerHTML = state.handComplete ? '发下一手 <span aria-hidden="true">→</span>' : '跳过本手 <span aria-hidden="true">→</span>';
-    ui.nextHand.setAttribute('aria-label', state.handComplete ? '发下一手' : '跳过本手并发下一手');
-    ui.footerNote.textContent = state.mode === 'full' ? `模拟现金局 · ${DEFAULT_STACK} bb · bb 为大盲注` : `${modeName()} · 每次练一个决策节点 · 频率为本地策略估算`;
+    ui.nextHand.innerHTML = `${t(state.handComplete ? 'next.deal' : 'next.skip')} <span aria-hidden="true">→</span>`;
+    ui.nextHand.setAttribute('aria-label', t(state.handComplete ? 'next.deal' : 'next.skip'));
+    ui.footerNote.textContent = state.mode === 'full'
+      ? t('status.session', { stack: DEFAULT_STACK })
+      : t('status.practice', { mode: modeName() });
   }
 
   function setQuickSize(value) {
@@ -1682,6 +1818,10 @@
       ui.raiseInput.value = String(clamp(roundChip(Number(ui.raiseInput.value) || 0), Number(ui.raiseInput.min), Number(ui.raiseInput.max)));
     });
     ui.nextHand.addEventListener('click', () => startNewHand());
+    window.addEventListener('poker-language-change', () => {
+      render();
+      renderHistory();
+    });
   }
 
   function installWebMcpTools() {
@@ -1701,13 +1841,13 @@
             : ['fold', ...(due > 0.001 ? ['call'] : ['check']), ...((!state.actedSinceFullRaise.has(player.id) && player.chips > due && player.streetBet + player.chips > state.currentBet) ? [state.currentBet > 0 ? 'raise' : 'bet'] : [])];
           return {
             mode: modeName(), handNumber: state.handNumber, street: streetName(state.street),
-            opponentStyle: { name: '标准', fixed: true },
+            opponentStyles: state.players.filter((item) => !item.human).map((item) => ({ name: item.name, style: t(`style.${item.aiStyle.key}`) })),
             hero: { position: player.position, cards: player.cards.map(cardText), stackBb: player.chips },
             board: state.board.map(cardText), potBb: sumPot(), toCallBb: due,
             humanToAct: state.humanTurn, availableActions,
-            players: state.players.map((item) => ({ name: item.name, position: item.position, stackBb: item.chips, folded: item.folded, allIn: item.allIn, action: item.actionLabel })),
-            lastFeedback: state.currentReview ? { action: state.currentReview.actionLabel, referenceFrequencyPercent: state.currentReview.match, handStrength: state.currentReview.handLabel || null } : null,
-            strategyNotice: '参考频率由本地简化模型估算，不是求解器计算出的真实 GTO 解。'
+            players: state.players.map((item) => ({ name: item.human ? t('player.you') : item.name, position: item.position, stackBb: item.chips, folded: item.folded, allIn: item.allIn, action: playerActionLabel(item) })),
+            lastFeedback: state.currentReview ? { action: actionName(state.currentReview.actionKey, state.currentReview.actionKey === 'bet' || state.currentReview.actionKey === 'raise' ? state.currentReview.actionTarget : null), referenceFrequencyPercent: state.currentReview.match, handStrength: state.currentReview.handCategoryKey ? t(`hand.${state.currentReview.handCategoryKey}`) : null } : null,
+            strategyNotice: t('review.localNotice')
           };
         }
       },
@@ -1724,18 +1864,18 @@
         },
         annotations: { readOnlyHint: false },
         execute: async ({ action, targetTotalBb }) => {
-          if (!state.humanTurn || state.handComplete) return { ok: false, message: '当前不是你的行动节点。', state: { handNumber: state.handNumber, street: streetName(state.street) } };
+          if (!state.humanTurn || state.handComplete) return { ok: false, message: t('review.notYourTurn'), state: { handNumber: state.handNumber, street: streetName(state.street) } };
           const due = currentToCall(hero());
           let normalized = action;
           if (action === 'bet' && state.currentBet > 0) normalized = 'raise';
           if (action === 'raise' && state.currentBet <= 0) normalized = 'bet';
-          if (normalized === 'check' && due > 0.001) return { ok: false, message: '当前需要跟注，不能过牌。' };
-          if (normalized === 'call' && due <= 0.001) return { ok: false, message: '当前没有下注可跟，可以过牌或下注。' };
-          if (normalized === 'fold' && due <= 0.001) return { ok: false, message: '无人下注时不能弃牌。' };
+          if (normalized === 'check' && due > 0.001) return { ok: false, message: t('review.cannotCheck') };
+          if (normalized === 'call' && due <= 0.001) return { ok: false, message: t('review.cannotCall') };
+          if (normalized === 'fold' && due <= 0.001) return { ok: false, message: t('review.cannotFold') };
           const raising = normalized === 'raise' || normalized === 'bet';
-          if (raising && (state.actedSinceFullRaise.has(hero().id) || hero().chips <= due || hero().streetBet + hero().chips <= state.currentBet)) return { ok: false, message: '此节点不能再加注。' };
+          if (raising && (state.actedSinceFullRaise.has(hero().id) || hero().chips <= due || hero().streetBet + hero().chips <= state.currentBet)) return { ok: false, message: t('review.cannotRaise') };
           const target = raising ? Number(targetTotalBb) : 0;
-          if (raising && !Number.isFinite(target)) return { ok: false, message: '下注或加注需要提供 targetTotalBb。' };
+          if (raising && !Number.isFinite(target)) return { ok: false, message: t('review.targetRequired') };
           humanAction(normalized, target);
           return { ok: true, state: { handNumber: state.handNumber, street: streetName(state.street), humanToAct: state.humanTurn, handComplete: state.handComplete, feedback: state.currentReview ? { action: state.currentReview.actionLabel, referenceFrequencyPercent: state.currentReview.match } : null } };
         }

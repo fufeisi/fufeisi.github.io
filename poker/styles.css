@@ -55,6 +55,10 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
 .nav-item { padding: 8px 13px; border-radius: 8px; color: var(--lime); background: #c7f27a14; font-size: 13px; }
 .profile { display: flex; align-items: center; gap: 8px; color: #dce4dc; font-size: 13px; }
 .avatar { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 50%; background: #344238; color: var(--lime); font-weight: 800; }
+.topbar-actions { display: flex; align-items: center; gap: 13px; }
+.language-switch { display: flex; align-items: center; gap: 2px; padding: 3px; border: 1px solid #ffffff1b; border-radius: 9px; background: #171d1a; }
+.language-switch button { min-height: 28px; padding: 4px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; font-size: 11px; font-weight: 750; }
+.language-switch button[aria-pressed="true"] { background: #34422f; color: var(--lime); }
 
 .wrap {
   width: min(1880px, 100%);
@@ -388,6 +392,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
   body { background: #111613; }
   .topbar { height: 48px; padding: 0 12px; }
   .topnav, .profile { display: none; }
+  .topbar-actions { gap: 0; }
+  .language-switch { padding: 2px; }
+  .language-switch button { min-height: 29px; padding: 4px 8px; }
   .brand-mark { width: 29px; height: 29px; }
   .wrap { min-height: calc(100dvh - 48px); padding: 8px 8px calc(155px + env(safe-area-inset-bottom)); gap: 8px; }
   .pagehead { min-height: 29px; justify-content: center; }

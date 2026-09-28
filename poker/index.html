@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111513">
-  <meta name="description" content="与五位 AI 对手练习德州扑克，复盘翻前与翻后决策。">
-  <title>River Lab — 德州扑克训练桌</title>
+  <meta name="description" content="与五位 AI 对手练习德州扑克，复盘翻前与翻后决策。" data-i18n-content="meta.description">
+  <title data-i18n-title="meta.title">River Lab — 德州扑克训练桌</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%23192224'/%3E%3Cpath d='M20 7 8 21a7 7 0 0 0 12 5 7 7 0 0 0 12-5L20 7Zm-4 22-3 5h14l-3-5' fill='%23bcf56b'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -13,50 +13,72 @@
   <div class="app" id="app">
     <header class="topbar">
       <div class="brand"><div class="brand-mark">♠</div><span>RIVER LAB</span></div>
-      <nav class="topnav" aria-label="主导航"><span class="nav-item active">训练桌</span></nav>
-      <div class="profile"><div class="avatar">你</div><span>练习玩家</span></div>
-    </header>
-    <main class="wrap">
-      <section class="pagehead"><div><div class="eyebrow">TRAINING ROOM · 6 MAX</div><h1>德州扑克训练桌</h1></div><div class="session-meta"><span>本次手数 <strong id="hands">01</strong></span><span>策略匹配率 <strong id="accuracy">—</strong></span><span>筹码变化 <strong id="session-result">0 bb</strong></span></div></section>
-      <div class="training-options">
-        <div class="modebar" role="tablist" aria-label="训练模式"><button class="mode-button active" role="tab" aria-selected="true" data-mode="full">整手练习</button><button class="mode-button" role="tab" aria-selected="false" data-mode="preflop">翻前专项</button><button class="mode-button" role="tab" aria-selected="false" data-mode="postflop">翻后专项</button></div>
-        <div class="range-filter" id="preflop-filter">
-          <div class="range-label"><span>翻前范围</span><output id="range-extra-value" for="preflop-extra">GTO +0%</output><span class="range-hint">下手生效</span></div>
-          <input class="range-slider" id="preflop-extra" type="range" min="0" max="100" step="5" value="0" aria-label="在翻前参考范围上扩宽百分比" title="当前手不变，下一手按新范围发牌">
-          <div class="range-meta"><span id="range-position">BTN · 开池</span><span>范围 <b id="range-base">0%</b> → <b id="range-current">0%</b></span></div>
+      <nav class="topnav" aria-label="主导航" data-i18n-aria="nav.aria"><span class="nav-item active" data-i18n="nav.training">训练桌</span></nav>
+      <div class="topbar-actions">
+        <div class="profile"><div class="avatar" data-i18n="player.avatar">你</div><span data-i18n="player.label">练习玩家</span></div>
+        <div class="language-switch" role="group" aria-label="界面语言" data-i18n-aria="language.group">
+          <button type="button" data-language="zh-CN" aria-pressed="false">中文</button>
+          <button type="button" data-language="en" aria-pressed="false">English</button>
         </div>
       </div>
-      <section class="opponent-style-filter" aria-label="AI 对手风格">
-        <div class="style-filter-heading"><span class="style-filter-title">AI 对手风格</span><span class="style-filter-note">五位 AI 固定采用标准策略</span></div>
+    </header>
+    <main class="wrap">
+      <section class="pagehead">
+        <div><div class="eyebrow" data-i18n="page.eyebrow">TRAINING ROOM · 6 MAX</div><h1 data-i18n="page.title">德州扑克训练桌</h1></div>
+        <div class="session-meta">
+          <span><span data-i18n="stats.hands">本次手数</span> <strong id="hands">01</strong></span>
+          <span><span data-i18n="stats.accuracy">策略匹配率</span> <strong id="accuracy">—</strong></span>
+          <span><span data-i18n="stats.chips">筹码变化</span> <strong id="session-result">0 bb</strong></span>
+        </div>
+      </section>
+      <div class="training-options">
+        <div class="modebar" role="tablist" aria-label="训练模式" data-i18n-aria="modes.aria">
+          <button class="mode-button active" role="tab" aria-selected="true" data-mode="full" data-i18n="mode.full">整手练习</button>
+          <button class="mode-button" role="tab" aria-selected="false" data-mode="preflop" data-i18n="mode.preflop">翻前专项</button>
+          <button class="mode-button" role="tab" aria-selected="false" data-mode="postflop" data-i18n="mode.postflop">翻后专项</button>
+        </div>
+        <div class="range-filter" id="preflop-filter">
+          <div class="range-label"><span data-i18n="range.label">翻前范围</span><output id="range-extra-value" for="preflop-extra">GTO +0%</output><span class="range-hint" data-i18n="range.hint">下手生效</span></div>
+          <input class="range-slider" id="preflop-extra" type="range" min="0" max="100" step="5" value="0" aria-label="在翻前参考范围上扩宽百分比" data-i18n-aria="range.aria" title="当前手不变，下一手按新范围发牌" data-i18n-title="range.title">
+          <div class="range-meta"><span id="range-position">BTN · 开池</span><span><span data-i18n="range.current">范围</span> <b id="range-base">0%</b> → <b id="range-current">0%</b></span></div>
+        </div>
+      </div>
+      <section class="opponent-style-filter" aria-label="AI 对手风格" data-i18n-aria="style.aria">
+        <div class="style-filter-heading"><span class="style-filter-title" data-i18n="style.title">AI 对手风格</span><span class="style-filter-note" data-i18n="style.note">每手随机分配五种风格 · 各一位</span></div>
       </section>
       <div class="layout">
-        <section class="panel table-panel" aria-label="德州扑克牌桌">
-          <div class="table-top"><span>NLH · <b>盲注 0.5 / 1 bb</b></span><div class="table-pills"><span class="pill" id="hand-id">手牌 #0001</span><span class="pill" id="street-pill">翻牌前</span></div></div>
-          <div class="felt-wrap"><div class="table-center"><div class="pot-label">POT</div><div class="pot-total" id="pot">1.5 bb</div><div class="board" id="board" aria-label="公共牌"></div><div class="pot-chips"><span class="chip"></span><span class="chip"></span><span>底池</span></div></div></div>
+        <section class="panel table-panel" aria-label="德州扑克牌桌" data-i18n-aria="table.aria">
+          <div class="table-top"><span>NLH · <b><span data-i18n="table.blinds">盲注</span> 0.5 / 1 bb</b></span><div class="table-pills"><span class="pill" id="hand-id">手牌 #0001</span><span class="pill" id="street-pill">翻牌前</span></div></div>
+          <div class="felt-wrap"><div class="table-center"><div class="pot-label">POT</div><div class="pot-total" id="pot">1.5 bb</div><div class="board" id="board" aria-label="公共牌" data-i18n-aria="board.aria"></div><div class="pot-chips"><span class="chip"></span><span class="chip"></span><span data-i18n="pot.label">底池</span></div></div></div>
           <div id="seats"></div>
           <div class="table-status" id="table-status">正在发牌…</div>
         </section>
-        <div class="controls" id="controls"><div class="decision-actions"><button class="action warn" id="fold-btn">弃牌</button><button class="action" id="pass-btn">过牌</button><button class="action primary" id="call-btn">跟注</button></div><div class="raise-tools"><input class="raise-input" id="raise-input" type="number" min="1" step="0.5" value="2.5" inputmode="decimal" aria-label="加注到多少 bb"><button class="action" id="raise-btn">加注</button></div><div class="quick-sizes"><button class="quick-size" data-size="33">33%</button><button class="quick-size" data-size="66">66%</button><button class="quick-size" data-size="100">底池</button><button class="quick-size" data-size="jam">全下</button></div></div>
+        <div class="controls" id="controls">
+          <div class="decision-actions"><button class="action warn" id="fold-btn" data-i18n="action.fold">弃牌</button><button class="action" id="pass-btn" data-i18n="action.check">过牌</button><button class="action primary" id="call-btn" data-i18n="action.call">跟注</button></div>
+          <div class="raise-tools"><input class="raise-input" id="raise-input" type="number" min="1" step="0.5" value="2.5" inputmode="decimal" aria-label="加注到多少 bb" data-i18n-aria="raise.aria"><button class="action" id="raise-btn" data-i18n="action.raise">加注</button></div>
+          <div class="quick-sizes"><button class="quick-size" data-size="33">33%</button><button class="quick-size" data-size="66">66%</button><button class="quick-size" data-size="100" data-i18n="size.pot">底池</button><button class="quick-size" data-size="jam" data-i18n="action.allin">全下</button></div>
+        </div>
         <aside class="panel feedback">
-          <div class="feedback-head"><h2>决策反馈</h2><span class="live-tag" id="feedback-state">训练中</span></div>
+          <div class="feedback-head"><h2 data-i18n="feedback.title">决策反馈</h2><span class="live-tag" id="feedback-state" data-i18n="feedback.live">训练中</span></div>
           <div class="spot-card" id="node-details"></div>
-          <div class="decision-box" id="decision-box"><div class="decision-kicker">等待你的选择</div><strong>—</strong><p>观察位置、底池赔率和牌面结构，再选择行动。</p></div>
-          <div><div class="strategy-title" id="strategy-title">参考行动频率</div><div id="strategy-list"><div class="empty-strategy">做出选择后显示本地策略参考</div></div></div>
-          <div class="notice"><strong>AI 对手</strong><br>五位 AI 固定采用标准风格；决策参考 Fullhouse Bot 最终版的翻前范围、短筹码、范围权益、下注与价值加注分支。训练频率为近似参考，不代表求解器给出的真实 GTO 频率。</div>
+          <div class="decision-box" id="decision-box"><div class="decision-kicker" data-i18n="decision.waiting">等待你的选择</div><strong>—</strong><p data-i18n="decision.intro">观察位置、底池赔率和牌面结构，再选择行动。</p></div>
+          <div><div class="strategy-title" id="strategy-title" data-i18n="strategy.title">参考行动频率</div><div id="strategy-list"><div class="empty-strategy" data-i18n="strategy.empty">做出选择后显示本地策略参考</div></div></div>
+          <div class="notice"><strong data-i18n="notice.title">AI 对手</strong><br><span data-i18n="notice.text">五位 AI 每手随机获得一种风格：紧弱、紧凶、松弱、松凶或均衡；决策参考 Fullhouse Bot 的翻前范围、权益估算和下注分支。训练频率是近似参考，不是真实求解器 GTO 频率。</span></div>
         </aside>
       </div>
-      <div class="session-footer"><span class="footer-note" id="footer-note">模拟现金局 · 筹码以大盲注（bb）显示</span><button class="next-hand" id="next-hand">发下一手 <span aria-hidden="true">→</span></button></div>
+      <div class="session-footer"><span class="footer-note" id="footer-note">模拟现金局 · 筹码以大盲注（bb）显示</span><button class="next-hand" id="next-hand"><span data-i18n="next.deal">发下一手</span> <span aria-hidden="true">→</span></button></div>
       <section class="panel history-panel" aria-labelledby="history-title">
-        <div class="history-heading"><div><h2 id="history-title">近 7 天记录</h2><p>本机浏览器保存 · 7 天后自动过期</p></div><span class="device-badge">设备 <b id="device-id">—</b></span></div>
-        <div class="history-summary" aria-label="近七天汇总">
-          <span>完成记录 <b id="history-count">0</b></span>
-          <span>整手净变化 <b id="history-net" data-result="even">0 bb</b></span>
-          <span>平均策略匹配 <b id="history-match">—</b></span>
+        <div class="history-heading"><div><h2 id="history-title" data-i18n="history.title">近 7 天记录</h2><p data-i18n="history.note">本机浏览器保存 · 7 天后自动过期</p></div><span class="device-badge"><span data-i18n="history.device">设备</span> <b id="device-id">—</b></span></div>
+        <div class="history-summary" aria-label="近七天汇总" data-i18n-aria="history.summary">
+          <span><span data-i18n="history.count">完成记录</span> <b id="history-count">0</b></span>
+          <span><span data-i18n="history.net">整手净变化</span> <b id="history-net" data-result="even">0 bb</b></span>
+          <span><span data-i18n="history.match">平均策略匹配</span> <b id="history-match">—</b></span>
         </div>
         <ol class="history-list" id="history-list" aria-live="polite"></ol>
       </section>
     </main>
   </div>
+  <script src="i18n.js"></script>
   <script src="fullhouse-ranges.js"></script>
   <script src="app.js"></script>
 </body>
