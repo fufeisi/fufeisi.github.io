@@ -23,6 +23,10 @@ home: true
           <span class="home-hobby-icon home-hobby-sail" aria-hidden="true"><svg><use xlink:href="/assets/fontawesome/icons.svg#ship"></use></svg></span>
           <span>Sailing</span>
         </li>
+        <li>
+          <span class="home-hobby-icon home-hobby-poker" aria-hidden="true"><svg><use xlink:href="/assets/fontawesome/icons.svg#clone"></use></svg></span>
+          <span>Texas Hold'em Poker</span>
+        </li>
       </ul>
     </aside>
 
