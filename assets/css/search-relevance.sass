@@ -232,15 +232,9 @@ $line: #d7e0df
   border: 1px solid $line
   border-radius: 5px
   background: #fff
-  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, opacity 180ms ease
 
 .relevance-product[hidden]
   display: none
-
-.relevance-product[data-scoring="active"]
-  border-color: $teal
-  box-shadow: 0 0 0 2px rgba(17, 135, 127, 0.16)
-  transform: translateY(-2px)
 
 .relevance-product[data-excluded="true"]
   border-style: dashed
@@ -408,23 +402,12 @@ $line: #d7e0df
 .relevance-product[data-score="0"] .relevance-score strong
   color: $coral
 
-.relevance-product[data-scoring="active"] .relevance-score strong
-  animation: score-pop 240ms ease-out both
-
 .relevance-outcome
   display: inline-block
   margin-top: 0.45rem
   color: $coral
   font-size: 0.7rem
   font-weight: 700
-
-@keyframes score-pop
-  from
-    opacity: 0
-    transform: scale(0.65)
-  to
-    opacity: 1
-    transform: scale(1)
 
 @media (prefers-color-scheme: dark)
   .relevance-demo
@@ -512,10 +495,3 @@ $line: #d7e0df
   .mode-option
     padding: 0 0.65rem
     font-size: 0.82rem
-
-@media (prefers-reduced-motion: reduce)
-  .relevance-product
-    transition: none
-
-  .relevance-product[data-scoring="active"] .relevance-score strong
-    animation: none

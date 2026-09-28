@@ -15,7 +15,7 @@ relevance_model: true
     </label>
 
     <div class="relevance-intro">
-      <h2 id="relevance-title">Popularity isn't the same as relevance</h2>
+      <h2 id="relevance-title">Use a relevance model to score products</h2>
       <div class="score-examples" aria-label="Example relevance scores for this search">
         <div class="score-example">
           <div class="score-example-photo relevance-photo" data-photo="2" aria-hidden="true"><img src="{{ '/assets/images/search-retrieval-products.jpg' | relative_url }}" alt=""></div>
