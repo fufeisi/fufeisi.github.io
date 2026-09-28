@@ -15,17 +15,9 @@
   const HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const DEVICE_ID_KEY = 'riverlab:poker:device-id:v1';
   const HISTORY_KEY_PREFIX = 'riverlab:poker:history:v1:';
-  const AI_STYLE_KEY = 'riverlab:poker:ai-style:v1';
   const AI_SESSION_KEY = 'riverlab:poker:ai-session:v1';
   const AI_HAND_NUMBER_KEY = 'riverlab:poker:ai-hand-number:v1';
   const FULLHOUSE_API_BASE = String(window.FULLHOUSE_API_BASE || '').trim().replace(/\/+$/, '');
-  const AI_STYLES = [
-    { key: 'tight-passive', tightness: 0.08, aggression: -0.16 },
-    { key: 'tight-aggressive', tightness: 0.08, aggression: 0.18 },
-    { key: 'loose-passive', tightness: -0.07, aggression: -0.14 },
-    { key: 'loose-aggressive', tightness: -0.07, aggression: 0.22 },
-    { key: 'balanced', tightness: 0, aggression: 0 }
-  ];
   const FH_RANGES = window.FULLHOUSE_RANGES || { openCharts: {}, defense: {}, vs3Bet: {}, openSizeBb: {} };
   const CATEGORY_KEYS = ['highCard', 'onePair', 'twoPair', 'trips', 'straight', 'flush', 'fullHouse', 'quads', 'straightFlush'];
   const byId = (id) => document.getElementById(id);
@@ -41,8 +33,6 @@
     preflopFilter: byId('preflop-filter'), preflopRange: byId('preflop-extra'),
     rangeExtraValue: byId('range-extra-value'), rangePosition: byId('range-position'),
     rangeBase: byId('range-base'), rangeCurrent: byId('range-current'),
-    aiTightness: byId('ai-tightness'), aiTightnessValue: byId('ai-tightness-value'),
-    aiAggression: byId('ai-aggression'), aiAggressionValue: byId('ai-aggression-value'),
     nextHand: byId('next-hand'), handCount: byId('hands'), accuracy: byId('accuracy'),
     sessionResult: byId('session-result'), nodeDetails: byId('node-details'),
     decisionBox: byId('decision-box'), strategyTitle: byId('strategy-title'),
@@ -56,18 +46,14 @@
     mode: 'full', handNumber: 0, aiHandNumber: 0, players: [], deck: [], board: [], street: 'preflop',
     currentBet: 0, minRaise: 1, pending: [], actedSinceFullRaise: new Set(),
     buttonSeat: 0, currentActor: null, humanTurn: false, handComplete: false, handEnded: false,
-    currentReview: null, resultText: '', resultDescriptor: null, actionLog: [], aiStyles: null, playerStats: {},
+    currentReview: null, resultText: '', resultDescriptor: null, actionLog: [], playerStats: {},
     decisions: 0, matchedFrequencyTotal: 0, sessionNet: 0, completedHands: 0,
     lastAggressor: null, spotDecisionOnly: false, handStartStack: 100,
     historyRecordedHand: 0,
     preflopExtraPercent: 0,
-    tableTightness: 4, tableAggression: 4,
     aiServiceIssue: false
   };
 
-  const savedAIStyle = loadAIStyleSettings();
-  state.tableTightness = savedAIStyle.tightness;
-  state.tableAggression = savedAIStyle.aggression;
   const deviceId = loadOrCreateDeviceId();
   const aiSessionId = loadOrCreateAiSessionId();
   let historyItems = loadHistory();
@@ -106,39 +92,6 @@
     } catch (_) {
       return makeDeviceId();
     }
-  }
-
-  function loadAIStyleSettings() {
-    try {
-      const saved = JSON.parse(window.localStorage.getItem(AI_STYLE_KEY) || '{}');
-      const normalizeLevel = (value) => {
-        const number = Number(value);
-        return Number.isFinite(number) ? Math.max(1, Math.min(7, Math.round(number))) : 4;
-      };
-      return { tightness: normalizeLevel(saved.tightness), aggression: normalizeLevel(saved.aggression) };
-    } catch (_) {
-      return { tightness: 4, aggression: 4 };
-    }
-  }
-
-  function persistAIStyleSettings() {
-    try {
-      window.localStorage.setItem(AI_STYLE_KEY, JSON.stringify({
-        tightness: state.tableTightness,
-        aggression: state.tableAggression
-      }));
-    } catch (_) { /* Keep the selected values in memory when storage is unavailable. */ }
-  }
-
-  function updateAIStyleLabels() {
-    ui.aiTightness.value = String(state.tableTightness);
-    ui.aiAggression.value = String(state.tableAggression);
-    const tightnessDescription = t(`style.tightness.${state.tableTightness}`);
-    const aggressionDescription = t(`style.aggression.${state.tableAggression}`);
-    ui.aiTightnessValue.textContent = t('style.level', { level: state.tableTightness, description: tightnessDescription });
-    ui.aiAggressionValue.textContent = t('style.level', { level: state.tableAggression, description: aggressionDescription });
-    ui.aiTightness.setAttribute('aria-valuetext', tightnessDescription);
-    ui.aiAggression.setAttribute('aria-valuetext', aggressionDescription);
   }
 
   function nextAiHandNumber() {
@@ -499,40 +452,12 @@
     }
   }
 
-  function sampleAIStyles() {
-    const tightBias = (state.tableTightness - 4) / 3;
-    const aggressionBias = (state.tableAggression - 4) / 3;
-    const intensity = Math.max(Math.abs(tightBias), Math.abs(aggressionBias));
-    if (intensity === 0) return Array(5).fill(AI_STYLES.find((style) => style.key === 'balanced'));
-
-    const tightProbability = (1 + tightBias) / 2;
-    const aggressiveProbability = (1 + aggressionBias) / 2;
-    const weightedStyles = [
-      [AI_STYLES.find((style) => style.key === 'tight-passive'), intensity * tightProbability * (1 - aggressiveProbability)],
-      [AI_STYLES.find((style) => style.key === 'tight-aggressive'), intensity * tightProbability * aggressiveProbability],
-      [AI_STYLES.find((style) => style.key === 'loose-passive'), intensity * (1 - tightProbability) * (1 - aggressiveProbability)],
-      [AI_STYLES.find((style) => style.key === 'loose-aggressive'), intensity * (1 - tightProbability) * aggressiveProbability],
-      [AI_STYLES.find((style) => style.key === 'balanced'), 1 - intensity]
-    ];
-    return Array.from({ length: 5 }, () => {
-      let roll = (randomInt(1_000_000) / 1_000_000) * weightedStyles.reduce((sum, [, weight]) => sum + weight, 0);
-      for (const [style, weight] of weightedStyles) {
-        roll -= weight;
-        if (roll < 0) return style;
-      }
-      return weightedStyles[weightedStyles.length - 1][0];
-    });
-  }
-
   function makePlayers(stack) {
-    state.aiStyles = sampleAIStyles();
     const names = [BOT_NAMES[0], BOT_NAMES[1], BOT_NAMES[2], t('player.you'), BOT_NAMES[3], BOT_NAMES[4]];
-    let botIndex = 0;
     state.players = names.map((name, seat) => ({
       id: `p${seat}`, seat, name, human: seat === HERO_SEAT, position: '',
       cards: [], chips: stack, committed: 0, streetBet: 0, folded: false,
-      allIn: false, actionLabel: '', actionLabelKey: '', actionLabelParams: {},
-      aiStyle: seat === HERO_SEAT ? null : state.aiStyles[botIndex++]
+      allIn: false, actionLabel: '', actionLabelKey: '', actionLabelParams: {}
     }));
   }
 
@@ -866,48 +791,6 @@
     if (total <= 0) return { raise: 0, call: 0, fold: 1 };
     for (const key of Object.keys(values)) values[key] /= total;
     return values;
-  }
-
-  function styleAdjustedDistribution(input, style, hand, position, context = 'facing') {
-    const result = normalizeActionDistribution(input);
-    const tightness = style?.tightness || 0;
-    const aggression = style?.aggression || 0;
-    const handStrength = hand?.length >= 2
-      ? preflopStrengthFromCode(hand)
-      : 0.5;
-    if (tightness > 0) {
-      const removedRaise = result.raise * Math.min(0.45, tightness * 1.7);
-      const removedCall = result.call * Math.min(0.55, tightness * 2.2);
-      result.raise -= removedRaise;
-      result.call -= removedCall;
-      result.fold += removedRaise + removedCall;
-    } else if (tightness < 0) {
-      const loosen = Math.abs(tightness);
-      const addedCall = Math.min(result.fold, loosen * (context === 'open' ? 0.35 : 0.75) * (handStrength > 0.42 ? 1 : 0.35));
-      result.call += addedCall;
-      result.fold -= addedCall;
-      if (result.raise === 0 && context === 'open') {
-        const cutoff = ({ UTG: 0.64, HJ: 0.58, CO: 0.51, BTN: 0.46, SB: 0.45 })[position] || 0.62;
-        result.raise = clamp((handStrength - cutoff) * 0.7, 0, 0.13);
-        result.fold = Math.max(0, result.fold - result.raise);
-      }
-    }
-    if (aggression > 0) {
-      const move = Math.min(result.call, aggression * 0.65);
-      result.call -= move;
-      result.raise += move;
-      if (context === 'open') {
-        const extra = Math.min(result.fold, aggression * 0.12);
-        result.fold -= extra;
-        result.raise += extra;
-      }
-    } else if (aggression < 0) {
-      const move = Math.min(result.raise, -aggression * (result.call > 0 ? 0.5 : 0.22));
-      result.raise -= move;
-      if (result.call > 0) result.call += move;
-      else result.fold += move;
-    }
-    return normalizeActionDistribution(result);
   }
 
   function preflopStrengthFromCode(hand) {
@@ -1306,8 +1189,8 @@
     return fullhouseRaiseTo(player, state.currentBet + Math.floor(sumPot() * fraction));
   }
 
-  function sampleFullhouseDistribution(distribution, style, hand, position, context = 'facing') {
-    const adjusted = styleAdjustedDistribution(distribution, style, hand, position, context);
+  function sampleFullhouseDistribution(distribution) {
+    const adjusted = normalizeActionDistribution(distribution);
     const roll = Math.random();
     if (roll < adjusted.raise) return 'raise';
     if (roll < adjusted.raise + adjusted.call) return 'call';
@@ -1315,7 +1198,6 @@
   }
 
   function decidePreflop(player) {
-    const style = player.aiStyle;
     const hand = canonicalHand(player.cards);
     const premiumPair = hand === 'AA' || hand === 'KK';
     const toCall = Math.max(0, state.currentBet - player.streetBet);
@@ -1341,14 +1223,14 @@
     if (!premiumPair && raiseCount >= 1 && toCall >= 0.6 * (player.chips + player.streetBet) && toCall > 0) {
       const equity = currentEquity(player, 32);
       const required = toCall / Math.max(0.01, sumPot() + toCall);
-      return equity >= required + 0.06 + Math.max(0, style.tightness * 0.25) ? { action: 'call' } : { action: 'fold' };
+      return equity >= required + 0.06 ? { action: 'call' } : { action: 'fold' };
     }
 
     if (effectiveBb <= 20) {
       if (jam) {
         const equity = currentEquity(player, 32);
         const required = toCall / Math.max(0.01, sumPot() + toCall);
-        return equity >= required + 0.06 + Math.max(0, style.tightness * 0.25) ? { action: 'call' } : { action: 'fold' };
+        return equity >= required + 0.06 ? { action: 'call' } : { action: 'fold' };
       }
       if (raiseCount === 0) {
         const depth = effectiveBb <= 8 ? '8BB' : effectiveBb <= 12 ? '12BB' : '20BB';
@@ -1359,22 +1241,21 @@
         if (open.raise > 0.5) return fullhouseRaiseTo(player, 2.2);
         return canCheck ? { action: 'check' } : { action: 'fold' };
       }
-      return decidePreflopDefense(player, hand, history, raiseAllowed, style);
+      return decidePreflopDefense(player, hand, history, raiseAllowed);
     }
 
     if (raiseCount === 0) {
       if (player.position === 'SB' && alivePlayers().length === 2) {
         if ((FH_RANGES.neverOpenHeadsUp || []).includes(hand)) {
-          if (Math.random() < 0.1 + Math.max(0, style.aggression) * 0.1 && raiseAllowed) {
+          if (Math.random() < 0.1 && raiseAllowed) {
             return fullhouseRaiseTo(player, FH_RANGES.openSizeBb?.BTN || 2.5);
           }
           return canCheck ? { action: 'check' } : { action: 'fold' };
         }
-        if (style.tightness > 0 && Math.random() < style.tightness * 0.35 && canCheck) return { action: 'check' };
         return fullhouseRaiseTo(player, FH_RANGES.openSizeBb?.BTN || 2.5);
       }
       const base = fullhouseOpenDistribution(player.position, hand);
-      const choice = sampleFullhouseDistribution(base, style, hand, player.position, 'open');
+      const choice = sampleFullhouseDistribution(base);
       if (choice === 'raise' && raiseAllowed) {
         return fullhouseRaiseTo(player, FH_RANGES.openSizeBb?.[player.position] || 2.5);
       }
@@ -1384,7 +1265,7 @@
 
     if (raiseCount >= 2 && history.raises[0].playerId !== player.id) {
       if ((FH_RANGES.cold4BetValue || []).includes(hand)) return fullhouseRaiseTo(player, state.currentBet * 2.2);
-      if ((FH_RANGES.cold4BetBluff || []).includes(hand) && Math.random() < 0.35 + Math.max(0, style.aggression) * 0.2) {
+      if ((FH_RANGES.cold4BetBluff || []).includes(hand) && Math.random() < 0.35) {
         return fullhouseRaiseTo(player, state.currentBet * 2.2);
       }
       if ((FH_RANGES.coldCall4Bet || []).includes(hand)) return { action: 'call' };
@@ -1392,23 +1273,23 @@
     }
     if (history.raises[0]?.playerId === player.id) {
       const base = FH_RANGES.vs3Bet?.[hand] || { raise: 0, call: 0, fold: 1 };
-      const choice = sampleFullhouseDistribution(base, style, hand, player.position);
+      const choice = sampleFullhouseDistribution(base);
       if (choice === 'raise') {
         if (raiseAllowed) return fullhouseRaiseTo(player, state.currentBet * 2.25);
         return toCall > 0 ? { action: 'call' } : { action: 'check' };
       }
       return choice === 'call' && toCall > 0 ? { action: 'call' } : (canCheck ? { action: 'check' } : { action: 'fold' });
     }
-    return decidePreflopDefense(player, hand, history, raiseAllowed, style);
+    return decidePreflopDefense(player, hand, history, raiseAllowed);
   }
 
-  function decidePreflopDefense(player, hand, history, raiseAllowed, style) {
+  function decidePreflopDefense(player, hand, history, raiseAllowed) {
     const toCall = Math.max(0, state.currentBet - player.streetBet);
     const canCheck = toCall <= 0.001;
     const opener = history.raises[0];
     if (!opener) return canCheck ? { action: 'check' } : { action: 'fold' };
     const base = fullhouseDefenseDistribution(opener.position, player.position, hand);
-    const choice = sampleFullhouseDistribution(base, style, hand, player.position);
+    const choice = sampleFullhouseDistribution(base);
     if (choice === 'raise') {
       if (raiseAllowed) {
         const order = { UTG: 0, HJ: 1, CO: 2, BTN: 3, SB: 4, BB: 5 };
@@ -1502,18 +1383,16 @@
   }
 
   function fullhousePostflopAction(player) {
-    const style = player.aiStyle;
     const toCall = Math.max(0, state.currentBet - player.streetBet);
     const canCheck = toCall <= 0.001;
     const pot = Math.max(1, sumPot());
     const equity = currentEquity(player, 42);
     const position = postflopPositionScore(player);
     let required = toCall > 0 ? toCall / (pot + toCall) : 0;
-    const styleMargin = style.tightness > 0 ? 0.025 : style.tightness < 0 ? -0.025 : 0;
-    required = clamp(required + styleMargin, 0, 0.95);
+    required = clamp(required, 0, 0.95);
     const raiseAllowed = !state.actedSinceFullRaise.has(player.id)
       && player.streetBet + player.chips > state.currentBet + state.minRaise - 0.001;
-    const raiseChance = (base) => clamp(base + style.aggression * 0.5, 0.02, 0.98);
+    const raiseChance = (base) => clamp(base, 0.02, 0.98);
 
     if (!canCheck && state.street === 'river' && toCall >= 0.66 * pot) {
       const villains = alivePlayers().filter((other) => other.id !== player.id);
@@ -1528,7 +1407,6 @@
 
     if (equity >= 0.72) {
       if (canCheck) {
-        if (style.aggression < 0 && Math.random() < Math.abs(style.aggression) * 0.24) return { action: 'check' };
         return fullhouseRaiseByPot(player, 0.7) || { action: 'check' };
       }
       if (equity >= 0.85) {
@@ -1560,7 +1438,7 @@
 
     if (canCheck) {
       if (position > 0.6 && fullhouseBoardIsDry(state.board)
-        && Math.random() < clamp(0.18 + style.aggression * 0.3, 0.03, 0.4)) {
+        && Math.random() < 0.18) {
         return fullhouseRaiseByPot(player, 0.5) || { action: 'check' };
       }
       return { action: 'check' };
@@ -1648,8 +1526,7 @@
         chips: item.chips,
         street_bet: item.streetBet,
         folded: item.folded,
-        all_in: item.allIn,
-        style: item.human ? 'balanced' : item.aiStyle.key
+        all_in: item.allIn
       })),
       action_log: state.actionLog.map((event) => ({
         seat: event.seat,
@@ -1686,7 +1563,7 @@
       return action;
     } catch (error) {
       state.aiServiceIssue = true;
-      console.warn('Fullhouse Function URL failed; using local fallback.', error);
+      console.warn('Fullhouse API failed; using local fallback.', error);
       render();
       return chooseBotAction(player);
     }
@@ -1959,13 +1836,10 @@
       const currentAction = playerActionLabel(player);
       const action = currentAction ? `<span class="seat-state">${currentAction}</span>` : '';
       const bet = player.streetBet > 0.001 && !currentAction && !state.handComplete ? `<div class="bet-chip">${fmt(player.streetBet)} bb</div>` : '';
-      const styleName = player.aiStyle ? t(`style.${player.aiStyle.key}`) : '';
-      const styleShort = player.aiStyle ? t(`style.${player.aiStyle.key}.short`) : '';
-      const styleTag = player.aiStyle ? `<span class="ai-style-tag" title="${styleName}">${styleShort}</span>` : '';
       const name = player.human ? t('player.you') : player.name;
       const activeClass = isActing ? (player.human ? ' acting acting-human' : ' acting') : '';
       const allIn = player.allIn ? ` · ${t('action.allin')}` : '';
-      return `<div class="seat seat-${player.seat + 1}${player.human ? ' hero' : ''}${player.folded ? ' folded' : ''}${state.handEnded ? ' revealed' : ''}${activeClass}"><div class="nameplate">${dealer}<span class="seat-name">${name}</span>${styleTag}<span class="seat-position">· ${positionLabel(player.position)}</span></div><div class="stack">${fmt(player.chips)} bb${allIn}</div>${action}${bet}<div class="mini-cards">${cardMarkupText}</div></div>`;
+      return `<div class="seat seat-${player.seat + 1}${player.human ? ' hero' : ''}${player.folded ? ' folded' : ''}${state.handEnded ? ' revealed' : ''}${activeClass}"><div class="nameplate">${dealer}<span class="seat-name">${name}</span><span class="seat-position">· ${positionLabel(player.position)}</span></div><div class="stack">${fmt(player.chips)} bb${allIn}</div>${action}${bet}<div class="mini-cards">${cardMarkupText}</div></div>`;
     }).join('');
   }
 
@@ -2074,17 +1948,6 @@
   }
 
   function bindEvents() {
-    updateAIStyleLabels();
-    ui.aiTightness.addEventListener('input', () => {
-      state.tableTightness = Number(ui.aiTightness.value) || 4;
-      updateAIStyleLabels();
-      persistAIStyleSettings();
-    });
-    ui.aiAggression.addEventListener('input', () => {
-      state.tableAggression = Number(ui.aiAggression.value) || 4;
-      updateAIStyleLabels();
-      persistAIStyleSettings();
-    });
     ui.preflopRange.addEventListener('input', () => {
       state.preflopExtraPercent = Number(ui.preflopRange.value) || 0;
       renderPreflopFilter();
@@ -2110,7 +1973,6 @@
     window.addEventListener('poker-language-change', () => {
       render();
       renderHistory();
-      updateAIStyleLabels();
     });
   }
 
@@ -2131,7 +1993,6 @@
             : ['fold', ...(due > 0.001 ? ['call'] : ['check']), ...((!state.actedSinceFullRaise.has(player.id) && player.chips > due && player.streetBet + player.chips > state.currentBet) ? [state.currentBet > 0 ? 'raise' : 'bet'] : [])];
           return {
             mode: modeName(), handNumber: state.handNumber, street: streetName(state.street),
-            opponentStyles: state.players.filter((item) => !item.human).map((item) => ({ name: item.name, style: t(`style.${item.aiStyle.key}`) })),
             hero: { position: player.position, cards: player.cards.map(cardText), stackBb: player.chips },
             board: state.board.map(cardText), potBb: sumPot(), toCallBb: due,
             humanToAct: state.humanTurn, availableActions,
