@@ -78,9 +78,39 @@ $line: #d7e0df
   margin: 0 0 0.35rem
   font-size: 1.2rem
 
-.relevance-intro p
-  margin: 0
-  line-height: 1.5
+.score-examples
+  display: grid
+  max-width: 42rem
+  grid-template-columns: repeat(3, minmax(0, 1fr))
+  margin-top: 0.75rem
+  border-top: 1px solid $line
+  border-bottom: 1px solid $line
+
+.score-example
+  display: flex
+  min-width: 0
+  min-height: 3.2rem
+  align-items: center
+  justify-content: space-between
+  gap: 0.35rem
+  padding: 0.55rem 0.65rem
+  color: $muted
+  font-size: 0.82rem
+  line-height: 1.25
+
+.score-example + .score-example
+  border-left: 1px solid $line
+
+.score-example strong
+  flex: 0 0 auto
+  color: $teal-dark
+  font-size: 1rem
+  font-variant-numeric: tabular-nums
+
+.score-example small
+  color: $muted
+  font-size: 0.7rem
+  font-weight: 500
 
 .relevance-switch
   margin: 1.2rem 0 0.9rem
@@ -132,13 +162,6 @@ $line: #d7e0df
 .mode-option:focus-within
   outline: 2px solid $coral
   outline-offset: 2px
-
-.relevance-summary
-  min-height: 1.5rem
-  margin: 0.8rem 0 1.1rem
-  color: $muted
-  font-size: 0.9rem
-  line-height: 1.45
 
 .results-heading
   display: flex
@@ -369,9 +392,10 @@ $line: #d7e0df
 
   .demo-kicker,
   .relevance-switch legend,
-  .relevance-summary,
   .results-count,
-  .product-meta
+  .product-meta,
+  .score-example,
+  .score-example small
     color: #b6c3c5
 
   .relevance-search
@@ -393,6 +417,10 @@ $line: #d7e0df
     color: #fff
 
   .results-heading
+    border-color: #414e52
+
+  .score-examples,
+  .score-example + .score-example
     border-color: #414e52
 
   .relevance-product
@@ -419,6 +447,13 @@ $line: #d7e0df
 @media (max-width: 40rem)
   .relevance-products
     grid-template-columns: repeat(2, minmax(0, 1fr))
+
+  .score-example
+    align-items: flex-start
+    flex-direction: column
+    justify-content: center
+    gap: 0.2rem
+    padding: 0.45rem
 
   .mode-option
     padding: 0 0.65rem

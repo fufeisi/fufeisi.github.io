@@ -5,7 +5,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const radios = demo.querySelectorAll('input[name="relevance-mode"]');
   const products = [...demo.querySelectorAll(".relevance-product")];
   const productList = demo.querySelector(".relevance-products");
-  const summary = demo.querySelector(".relevance-summary");
   const count = demo.querySelector(".results-count");
   const resultsTitle = demo.querySelector(".results-heading h2");
   const clickOrder = [...products].sort((a, b) => Number(a.dataset.clickRank) - Number(b.dataset.clickRank));
@@ -44,7 +43,6 @@ document.addEventListener("DOMContentLoaded", () => {
       excluded.querySelector(".relevance-outcome").hidden = false;
       resultsTitle.textContent = "Scores for each query–item pair";
       count.textContent = "5 retained · 1 unrelated item filtered · 6 scored";
-      summary.textContent = "Black shoes score 2, other shoes score 1, and the unrelated poker-chip case scores 0 and is filtered out.";
       return;
     }
 
@@ -71,13 +69,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!enabled) {
       resultsTitle.textContent = "Search results";
-      summary.textContent = "Sorted by clicks: high-click items can appear even when they miss “black” or everyday wear.";
       count.textContent = `${products.length} products · sorted by clicks`;
       return;
     }
 
     resultsTitle.textContent = "Scoring candidates";
-    summary.textContent = "The SLM scores each query–product pair before ranking the results.";
     showScores(run);
   };
 

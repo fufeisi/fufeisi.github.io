@@ -16,7 +16,11 @@ relevance_model: true
 
     <div class="relevance-intro">
       <h2 id="relevance-title">Popularity isn't the same as relevance</h2>
-      <p>A product can get many clicks and still miss what someone asked for. After retrieval narrows the catalog, a small language model (SLM) scores each query–product pair in the ranking stage. Ranking uses these scores to put better matches above popular mismatches.</p>
+      <div class="score-examples" aria-label="Example relevance scores for this search">
+        <div class="score-example"><span>Black shoe</span><strong>2 <small>/ 2</small></strong></div>
+        <div class="score-example"><span>Other shoe</span><strong>1 <small>/ 2</small></strong></div>
+        <div class="score-example"><span>Poker chip case</span><strong>0 <small>/ 2</small></strong></div>
+      </div>
     </div>
 
     <fieldset class="relevance-switch">
@@ -32,8 +36,6 @@ relevance_model: true
         </label>
       </div>
     </fieldset>
-
-    <p class="relevance-summary" aria-live="polite">Sorted by clicks: high-click items can appear even when they miss “black” or everyday wear.</p>
 
     <div class="results-heading">
       <h2>Search results</h2>
