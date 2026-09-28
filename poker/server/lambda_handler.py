@@ -1,4 +1,4 @@
-"""AWS Lambda entry point for a Lambda Function URL (HTTP API payload v2)."""
+"""AWS Lambda entry point for API Gateway REST API and Function URL events."""
 
 from mangum import Mangum
 

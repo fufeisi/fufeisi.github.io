@@ -15,7 +15,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
@@ -35,7 +35,7 @@ if not fullhouse_bot._HAVE_EVAL7:
 BOT_LOCK = threading.RLock()
 SESSION_LAST_SEEN: OrderedDict[str, float] = OrderedDict()
 SESSION_TTL_SECONDS = 12 * 60 * 60
-DAILY_DECISION_LIMIT = max(1, int(os.getenv("DAILY_DECISION_LIMIT", "20000")))
+DAILY_DECISION_LIMIT = max(1, int(os.getenv("DAILY_DECISION_LIMIT", "5000")))
 MAX_TRACKED_SESSIONS = 256
 DYNAMODB_TABLE_NAME = os.getenv("SESSION_TABLE_NAME", "").strip()
 _SESSION_TABLE = None
@@ -53,7 +53,6 @@ class PlayerInput(BaseModel):
     street_bet: float = Field(ge=0, le=100_000)
     folded: bool
     all_in: bool
-    style: Literal["tight-passive", "tight-aggressive", "loose-passive", "loose-aggressive", "balanced"] = "balanced"
 
 
 class ActionInput(BaseModel):
@@ -112,6 +111,75 @@ class DecisionResponse(BaseModel):
     bot: str
 
 
+class DecisionBodyLimitMiddleware:
+    """Reject oversized decision bodies before FastAPI parses their JSON."""
+
+    def __init__(self, app, max_body_bytes: int = 64 * 1024):
+        self.app = app
+        self.max_body_bytes = max_body_bytes
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http" or scope.get("method") != "POST" or scope.get("path") != "/decide":
+            await self.app(scope, receive, send)
+            return
+
+        headers = dict(scope.get("headers", []))
+        content_length = headers.get(b"content-length")
+        if content_length:
+            try:
+                declared_size = int(content_length)
+            except ValueError:
+                await self._send_error(send, 400, "Invalid content length")
+                return
+            if declared_size < 0:
+                await self._send_error(send, 400, "Invalid content length")
+                return
+            if declared_size > self.max_body_bytes:
+                await self._send_error(send, 413, "Request body is too large")
+                return
+
+        chunks = []
+        total_size = 0
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return
+            if message["type"] != "http.request":
+                continue
+            chunk = message.get("body", b"")
+            total_size += len(chunk)
+            if total_size > self.max_body_bytes:
+                await self._send_error(send, 413, "Request body is too large")
+                return
+            chunks.append(chunk)
+            if not message.get("more_body", False):
+                break
+
+        body = b"".join(chunks)
+        body_sent = False
+
+        async def replay_body():
+            nonlocal body_sent
+            if not body_sent:
+                body_sent = True
+                return {"type": "http.request", "body": body, "more_body": False}
+            return await receive()
+
+        await self.app(scope, replay_body, send)
+
+    async def _send_error(self, send, status: int, detail: str):
+        body = json.dumps({"detail": detail}, separators=(",", ":")).encode("utf-8")
+        await send({
+            "type": "http.response.start",
+            "status": status,
+            "headers": [
+                (b"content-type", b"application/json"),
+                (b"content-length", str(len(body)).encode("ascii")),
+            ],
+        })
+        await send({"type": "http.response.body", "body": body})
+
+
 def _forget_session(session_id: str) -> None:
     prefix = f"{session_id}:"
     for bot_id in [key for key in fullhouse_bot.PLAYER_STATS if key.startswith(prefix)]:
@@ -167,7 +235,7 @@ def _load_persistent_state(table, session_id: str) -> tuple[int, dict, dict]:
 
 
 def _consume_daily_quota(table) -> None:
-    """Cap public Function URL invocations to bound runaway compute spend."""
+    """Cap public API decisions to bound runaway compute spend."""
     today = dt.datetime.now(dt.timezone.utc).date()
     quota_key = f"__daily_quota__:{today.isoformat()}"
     expires_at = int(dt.datetime.combine(today + dt.timedelta(days=2), dt.time(), dt.timezone.utc).timestamp())
@@ -247,45 +315,11 @@ def _save_persistent_state(table, session_id: str, version: int) -> bool:
     return True
 
 
-def _apply_style_bias(raw_action: dict, game_state: dict, request: DecisionRequest) -> dict:
-    """Apply the small style nudge selected for this AI at the start of the hand."""
-    actor = next(player for player in request.players if player.seat == request.seat_to_act)
-    profiles = {
-        "tight-passive": (0.08, -0.16),
-        "tight-aggressive": (0.08, 0.18),
-        "loose-passive": (-0.07, -0.14),
-        "loose-aggressive": (-0.07, 0.22),
-        "balanced": (0.0, 0.0),
-    }
-    tightness, aggression = profiles.get(actor.style, (0.0, 0.0))
-    action = str(raw_action.get("action", "fold")).lower() if isinstance(raw_action, dict) else "fold"
-    owed = max(0.0, request.current_bet - actor.street_bet)
-
-    if tightness > 0 and action == "call" and random.random() < tightness * 0.9:
-        return {"action": "fold"}
-    if tightness < 0 and action == "fold" and owed > 0 and owed <= request.pot * 0.2:
-        if random.random() < abs(tightness) * 0.85:
-            return {"action": "call"}
-
-    if aggression > 0 and action in {"check", "call"} and request.can_raise:
-        if random.random() < aggression * 0.5:
-            cap = actor.street_bet + actor.chips
-            minimum = float(game_state["min_raise_to"])
-            target = request.current_bet + max(request.min_raise, request.pot * 0.5)
-            target = min(cap, max(minimum, target))
-            return {"action": "all_in" if target >= cap else ("raise" if request.current_bet > 0 else "bet"), "amount": target}
-    elif aggression < 0 and action in {"raise", "all_in"}:
-        if random.random() < abs(aggression) * 0.4:
-            return {"action": "call" if owed > 0 else "check"}
-
-    return raw_action
-
-
 def _decide_with_session_state(game_state: dict, request: DecisionRequest) -> dict:
     session_id = request.session_id
     if not DYNAMODB_TABLE_NAME:
         _touch_session(session_id)
-        return _apply_style_bias(fullhouse_bot.decide(game_state), game_state, request)
+        return fullhouse_bot.decide(game_state)
 
     table = _get_session_table()
     _consume_daily_quota(table)
@@ -295,7 +329,7 @@ def _decide_with_session_state(game_state: dict, request: DecisionRequest) -> di
         version, player_stats, applied = _load_persistent_state(table, session_id)
         _restore_persistent_state(session_id, player_stats, applied)
         fullhouse_bot.LAST_READ.clear()
-        raw_action = _apply_style_bias(fullhouse_bot.decide(game_state), game_state, request)
+        raw_action = fullhouse_bot.decide(game_state)
         if _save_persistent_state(table, session_id, version):
             return raw_action
 
@@ -393,14 +427,14 @@ configured_origins = [
 ]
 
 app = FastAPI(title="River Lab Fullhouse Bot API", version="1.0.0")
-if not os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=configured_origins,
-        allow_credentials=False,
-        allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Content-Type"],
-    )
+app.add_middleware(DecisionBodyLimitMiddleware, max_body_bytes=64 * 1024)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=configured_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
+)
 
 
 @app.get("/health")
@@ -414,15 +448,7 @@ def health() -> dict:
 
 
 @app.post("/decide", response_model=DecisionResponse)
-def decide(payload: DecisionRequest, http_request: Request) -> DecisionResponse:
-    content_length = http_request.headers.get("content-length")
-    if content_length:
-        try:
-            if int(content_length) > 64 * 1024:
-                raise HTTPException(status_code=413, detail="Request is too large")
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail="Invalid content length") from exc
-
+def decide(payload: DecisionRequest) -> DecisionResponse:
     game_state = _adapt_to_fullhouse(payload)
     with BOT_LOCK:
         try:
