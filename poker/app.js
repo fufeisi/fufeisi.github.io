@@ -264,7 +264,8 @@
   function cardMarkup(card, faceDown = false) {
     if (faceDown || !card) return `<div class="card back" aria-label="${t('card.hidden')}"></div>`;
     const data = suitData(card.suit);
-    return `<div class="card${data.red ? ' red' : ''}" aria-label="${cardText(card)}"><span class="card-rank">${rankText(card.rank)}</span><span class="card-pip">${data.symbol}</span></div>`;
+    const suitClass = card.suit === 'c' ? ' club' : data.red ? ' red' : '';
+    return `<div class="card${suitClass}" aria-label="${cardText(card)}"><span class="card-rank">${rankText(card.rank)}</span><span class="card-pip">${data.symbol}</span></div>`;
   }
   function fmt(number) {
     const rounded = Math.round((Number(number) + Number.EPSILON) * 100) / 100;

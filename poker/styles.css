@@ -194,6 +194,11 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
 .card-rank { position: absolute; top: 6px; left: 7px; font-size: 18px; font-weight: 800; line-height: 1; }
 .card-pip { position: absolute; top: 63%; left: 59%; transform: translate(-50%, -50%); font-size: 29px; font-weight: 700; line-height: 1; }
 .card.red { color: var(--red); }
+.card.club { color: #176f45; }
+.card.club .card-rank, .card.club .card-pip {
+  -webkit-text-stroke: .65px #edf7e8;
+  text-shadow: 0 0 2px #c7f27a;
+}
 .card.back {
   border: 2px solid #d2e1d5;
   background: repeating-linear-gradient(45deg, #315849 0 5px, #244939 5px 10px);
