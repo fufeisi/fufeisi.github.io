@@ -42,9 +42,10 @@
           <div class="spot-card" id="node-details"></div>
           <div class="decision-box" id="decision-box"><div class="decision-kicker">等待你的选择</div><strong>—</strong><p>观察位置、底池赔率和牌面结构，再选择行动。</p></div>
           <div><div class="strategy-title" id="strategy-title">参考行动频率</div><div id="strategy-list"><div class="empty-strategy">做出选择后显示本地策略参考</div></div></div>
-          <div class="notice"><strong>AI 对手</strong><br>五位 AI 固定采用标准风格；决策参考 Fullhouse Bot 最终版的翻前范围、短筹码、范围权益、下注与价值加注分支。训练频率为近似参考，不代表求解器给出的真实 GTO 频率。</div>
+          <div class="notice"><strong>AI 对手</strong><br>五位 AI 通过 Python 服务运行 Fullhouse Bot v16 原版决策函数。你的训练反馈仍使用本地简化频率，代表练习提示，不是求解器给出的真实 GTO 频率。</div>
         </aside>
       </div>
+      <div class="service-error" id="service-error" role="alert" hidden><span>Fullhouse Bot 服务连接失败。请检查后端部署和地址配置。</span><button class="action" id="retry-ai">重试</button></div>
       <div class="session-footer"><span class="footer-note" id="footer-note">模拟现金局 · 筹码以大盲注（bb）显示</span><button class="next-hand" id="next-hand">发下一手 <span aria-hidden="true">→</span></button></div>
       <section class="panel history-panel" aria-labelledby="history-title">
         <div class="history-heading"><div><h2 id="history-title">近 7 天记录</h2><p>本机浏览器保存 · 7 天后自动过期</p></div><span class="device-badge">设备 <b id="device-id">—</b></span></div>
@@ -57,6 +58,7 @@
       </section>
     </main>
   </div>
+  <script src="fullhouse-config.js"></script>
   <script src="fullhouse-ranges.js"></script>
   <script src="app.js"></script>
 </body>

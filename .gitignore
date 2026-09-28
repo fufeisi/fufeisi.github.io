@@ -5,3 +5,7 @@
 Gemfile.lock
 _site
 *.gem
+poker/server/.venv/
+poker/server/__pycache__/
+poker/server/vendor/__pycache__/
+*.py[cod]

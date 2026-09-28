@@ -342,6 +342,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
 .notice { display: none; }
 .empty-strategy { color: var(--muted); font-size: 11px; }
 .session-footer { min-height: 38px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.service-error { padding: 9px 12px; display: none; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid #935a50; border-radius: 9px; background: #382723; color: #ffb0a2; font-size: 12px; }
+.service-error:not([hidden]) { display: flex; }
+.service-error .action { min-height: 36px; padding: 6px 12px; border-color: #935a50; font-size: 12px; }
 .footer-note { color: var(--muted); font-size: 11px; }
 .next-hand { min-height: 38px; padding: 7px 13px; border: 1px solid #718052; border-radius: 9px; background: #293723; color: var(--lime); cursor: pointer; font-size: 13px; font-weight: 750; }
 .next-hand:hover { background: #35452c; }
