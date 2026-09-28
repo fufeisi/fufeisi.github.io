@@ -15,6 +15,9 @@
   const HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   const DEVICE_ID_KEY = 'riverlab:poker:device-id:v1';
   const HISTORY_KEY_PREFIX = 'riverlab:poker:history:v1:';
+  const AI_SESSION_KEY = 'riverlab:poker:ai-session:v1';
+  const AI_HAND_NUMBER_KEY = 'riverlab:poker:ai-hand-number:v1';
+  const FULLHOUSE_API_BASE = String(window.FULLHOUSE_API_BASE || '').trim().replace(/\/+$/, '');
   const AI_STYLES = [
     { key: 'tight-passive', tightness: 0.08, aggression: -0.16 },
     { key: 'tight-aggressive', tightness: 0.08, aggression: 0.18 },
@@ -47,17 +50,19 @@
   };
 
   const state = {
-    mode: 'full', handNumber: 0, players: [], deck: [], board: [], street: 'preflop',
+    mode: 'full', handNumber: 0, aiHandNumber: 0, players: [], deck: [], board: [], street: 'preflop',
     currentBet: 0, minRaise: 1, pending: [], actedSinceFullRaise: new Set(),
     buttonSeat: 0, currentActor: null, humanTurn: false, handComplete: false, handEnded: false,
     currentReview: null, resultText: '', resultDescriptor: null, actionLog: [], aiStyles: null, playerStats: {},
     decisions: 0, matchedFrequencyTotal: 0, sessionNet: 0, completedHands: 0,
     lastAggressor: null, spotDecisionOnly: false, handStartStack: 100,
     historyRecordedHand: 0,
-    preflopExtraPercent: 0
+    preflopExtraPercent: 0,
+    aiServiceIssue: false
   };
 
   const deviceId = loadOrCreateDeviceId();
+  const aiSessionId = loadOrCreateAiSessionId();
   let historyItems = loadHistory();
   let historyExpiryTimer = null;
 
@@ -81,6 +86,29 @@
       return created;
     } catch (_) {
       return makeDeviceId();
+    }
+  }
+
+  function loadOrCreateAiSessionId() {
+    try {
+      const stored = window.sessionStorage.getItem(AI_SESSION_KEY);
+      if (stored && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stored)) return stored;
+      const created = makeDeviceId();
+      window.sessionStorage.setItem(AI_SESSION_KEY, created);
+      return created;
+    } catch (_) {
+      return makeDeviceId();
+    }
+  }
+
+  function nextAiHandNumber() {
+    try {
+      const previous = Number(window.sessionStorage.getItem(AI_HAND_NUMBER_KEY)) || 0;
+      const next = previous + 1;
+      window.sessionStorage.setItem(AI_HAND_NUMBER_KEY, String(next));
+      return next;
+    } catch (_) {
+      return state.handNumber;
     }
   }
 
@@ -387,6 +415,7 @@
 
   function startNewHand() {
     state.handNumber += 1;
+    state.aiHandNumber = nextAiHandNumber();
     state.handStartStack = DEFAULT_STACK;
     state.deck = makeDeck();
     state.board = [];
@@ -401,6 +430,7 @@
     state.handEnded = false;
     state.currentReview = null;
     state.resultText = '';
+    state.aiServiceIssue = false;
     state.resultDescriptor = null;
     state.lastAggressor = null;
     state.actionLog = [];
@@ -520,9 +550,10 @@
     }
     state.humanTurn = false;
     render();
-    window.setTimeout(() => {
+    window.setTimeout(async () => {
       if (handId !== state.handNumber || state.handComplete || state.currentActor !== player.id) return;
-      const choice = chooseBotAction(player);
+      const choice = await chooseBotActionAsync(player);
+      if (handId !== state.handNumber || state.handComplete || state.currentActor !== player.id) return;
       applyAction(player, choice.action, choice.target);
       progress(handId);
     }, 330 + randomInt(220));
@@ -1439,6 +1470,76 @@
     return action;
   }
 
+  function cardCode(card) {
+    const rank = card.rank <= 9 ? String(card.rank) : ({ 10: 'T', 11: 'J', 12: 'Q', 13: 'K', 14: 'A' })[card.rank];
+    return `${rank}${card.suit}`;
+  }
+
+  function fullhouseRequest(player) {
+    const toCall = Math.max(0, state.currentBet - player.streetBet);
+    const cap = player.streetBet + player.chips;
+    return {
+      session_id: aiSessionId,
+      hand_number: state.aiHandNumber,
+      seat_to_act: player.seat,
+      street: state.street,
+      your_cards: player.cards.map(cardCode),
+      community_cards: state.board.map(cardCode),
+      current_bet: state.currentBet,
+      min_raise: state.minRaise,
+      pot: sumPot(),
+      can_raise: !state.actedSinceFullRaise.has(player.id)
+        && player.chips > toCall + 0.001
+        && cap > state.currentBet + 0.001,
+      players: state.players.map((item) => ({
+        seat: item.seat,
+        chips: item.chips,
+        street_bet: item.streetBet,
+        folded: item.folded,
+        all_in: item.allIn,
+        style: item.human ? 'balanced' : item.aiStyle.key
+      })),
+      action_log: state.actionLog.map((event) => ({
+        seat: event.seat,
+        street: event.street,
+        action: event.action,
+        amount: event.amount,
+        target: event.target
+      }))
+    };
+  }
+
+  async function chooseFullhouseApiAction(player) {
+    const response = await fetch(`${FULLHOUSE_API_BASE}/decide`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fullhouseRequest(player)),
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!response.ok) throw new Error(`Fullhouse API returned ${response.status}`);
+    const result = await response.json();
+    const action = String(result.action || '').toLowerCase();
+    if (['fold', 'check', 'call'].includes(action)) return { action };
+    if (['bet', 'raise'].includes(action) && Number.isFinite(Number(result.target))) {
+      return { action, target: Number(result.target) };
+    }
+    throw new Error('Fullhouse API returned an invalid action');
+  }
+
+  async function chooseBotActionAsync(player) {
+    if (!FULLHOUSE_API_BASE) return chooseBotAction(player);
+    try {
+      const action = await chooseFullhouseApiAction(player);
+      state.aiServiceIssue = false;
+      return action;
+    } catch (error) {
+      state.aiServiceIssue = true;
+      console.warn('Fullhouse Function URL failed; using local fallback.', error);
+      render();
+      return chooseBotAction(player);
+    }
+  }
+
   function actionName(action, target = 0) {
     if (action === 'fold' || action === 'check' || action === 'call' || action === 'all_in') {
       return t(action === 'all_in' ? 'action.allin' : `action.${action}`);
@@ -1772,9 +1873,9 @@
     ui.sessionResult.style.color = state.sessionNet > 0 ? 'var(--lime)' : state.sessionNet < 0 ? 'var(--red)' : '';
     ui.nextHand.innerHTML = `${t(state.handComplete ? 'next.deal' : 'next.skip')} <span aria-hidden="true">→</span>`;
     ui.nextHand.setAttribute('aria-label', t(state.handComplete ? 'next.deal' : 'next.skip'));
-    ui.footerNote.textContent = state.mode === 'full'
+    ui.footerNote.textContent = state.aiServiceIssue ? t('ai.serviceFallback') : (state.mode === 'full'
       ? t('status.session', { stack: DEFAULT_STACK })
-      : t('status.practice', { mode: modeName() });
+      : t('status.practice', { mode: modeName() }));
   }
 
   function setQuickSize(value) {
