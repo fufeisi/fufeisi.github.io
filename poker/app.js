@@ -160,6 +160,17 @@
       position: heroPlayer.position,
       cards: heroPlayer.cards.map(cardText),
       board: state.board.map(cardText),
+      actionLine: state.actionLog.map((event) => ({
+        street: event.street,
+        seat: event.seat,
+        position: event.position,
+        playerName: event.playerName || '',
+        human: Boolean(event.human),
+        action: event.action,
+        amount: Number.isFinite(event.amount) ? event.amount : 0,
+        target: Number.isFinite(event.target) ? event.target : null,
+        board: Array.isArray(event.board) ? event.board.slice() : []
+      })),
       result: formatResultDescriptor(),
       resultKind: state.resultDescriptor?.kind || '',
       resultKey: state.resultDescriptor?.key || '',
@@ -227,8 +238,87 @@
       const resultText = historyResultLabel(item);
       result.textContent = item.mode === 'full' && action ? `${action} · ${resultText}` : resultText;
       row.append(heading, cards, result);
+      if (Array.isArray(item.actionLine) && item.actionLine.length) {
+        row.append(renderHistoryActionLine(item.actionLine, item.board));
+      } else {
+        const unavailable = document.createElement('div');
+        unavailable.className = 'history-action-missing';
+        unavailable.textContent = t('history.actionLineMissing');
+        row.append(unavailable);
+      }
       ui.historyList.append(row);
     }
+  }
+
+  function historyActionDescription(event) {
+    const amount = Number.isFinite(event.amount) ? event.amount : 0;
+    const target = Number.isFinite(event.target) ? event.target : amount;
+    if (event.action === 'small_blind') return t('history.smallBlind', { amount: fmt(amount) });
+    if (event.action === 'big_blind') return t('history.bigBlind', { amount: fmt(amount) });
+    if (event.action === 'call' && amount > 0) return t('action.callAmount', { amount: fmt(amount) });
+    if (event.action === 'all_in') return t('history.allInTo', { amount: fmt(target) });
+    if (event.action === 'bet' || event.action === 'raise') return actionName(event.action, target);
+    return actionName(event.action);
+  }
+
+  function renderHistoryActionLine(events, finalBoard = []) {
+    const details = document.createElement('details');
+    details.className = 'history-actions';
+    const summary = document.createElement('summary');
+    summary.textContent = t('history.actionLine', { count: events.length });
+    details.append(summary);
+
+    const groups = [];
+    for (const event of events) {
+      let group = groups[groups.length - 1];
+      if (!group || group.street !== event.street) {
+        group = { street: event.street, events: [] };
+        groups.push(group);
+      }
+      group.events.push(event);
+    }
+    const runoutStreets = [
+      { street: 'flop', cardCount: 3 },
+      { street: 'turn', cardCount: 4 },
+      { street: 'river', cardCount: 5 }
+    ];
+    for (const runout of runoutStreets) {
+      if (finalBoard.length >= runout.cardCount && !groups.some((group) => group.street === runout.street)) {
+        groups.push({ street: runout.street, events: [], board: finalBoard.slice(0, runout.cardCount) });
+      }
+    }
+    const streetOrder = ['preflop', 'flop', 'turn', 'river', 'showdown'];
+    groups.sort((a, b) => streetOrder.indexOf(a.street) - streetOrder.indexOf(b.street));
+    for (const group of groups) {
+      const section = document.createElement('section');
+      section.className = 'history-street';
+      const heading = document.createElement('div');
+      heading.className = 'history-street-heading';
+      const board = group.board || group.events.find((event) => Array.isArray(event.board) && event.board.length)?.board || [];
+      heading.textContent = `${t(`street.${group.street}`)}${board.length ? ` · ${board.join(' ')}` : ''}`;
+      section.append(heading);
+
+      const list = document.createElement('div');
+      list.className = 'history-action-rows';
+      for (const event of group.events) {
+        const entry = document.createElement('div');
+        entry.className = 'history-action-row';
+        const actor = document.createElement('span');
+        actor.className = 'history-action-player';
+        const playerName = event.human
+          ? t('player.you')
+          : event.playerName || t('history.seat', { seat: Number(event.seat) + 1 });
+        actor.textContent = `${playerName}${event.position ? ` · ${event.position}` : ''}`;
+        const action = document.createElement('span');
+        action.className = 'history-action-label';
+        action.textContent = historyActionDescription(event);
+        entry.append(actor, action);
+        list.append(entry);
+      }
+      section.append(list);
+      details.append(section);
+    }
+    return details;
   }
 
   function randomInt(max) {
@@ -446,8 +536,8 @@
       const bigBlind = state.players[(state.buttonSeat + 2) % 6];
       setCommitment(smallBlind, 0.5);
       setCommitment(bigBlind, 1);
-      state.actionLog.push({ order: state.actionLog.length, street: 'preflop', seat: smallBlind.seat, playerId: smallBlind.id, position: smallBlind.position, action: 'small_blind', amount: 0.5 });
-      state.actionLog.push({ order: state.actionLog.length, street: 'preflop', seat: bigBlind.seat, playerId: bigBlind.id, position: bigBlind.position, action: 'big_blind', amount: 1 });
+      appendActionLog(smallBlind, 'small_blind', { amount: 0.5, target: 0.5 });
+      appendActionLog(bigBlind, 'big_blind', { amount: 1, target: 1 });
       state.currentBet = Math.max(smallBlind.streetBet, bigBlind.streetBet);
       state.lastAggressor = bigBlind;
       state.pending = queueForStreet('preflop', state.buttonSeat);
@@ -1611,14 +1701,38 @@
       stats.facedBet += 1;
       if (loggedAction === 'call') stats.callVsBet += 1;
     }
-    state.actionLog.push({
-      order: state.actionLog.length, street: state.street, seat: player.seat, playerId: player.id,
-      position: player.position, action: loggedAction, amount: paidAmount,
-      target: player.streetBet, toCall: toCallBefore, potBefore,
+    appendActionLog(player, loggedAction, {
+      amount: paidAmount, target: player.streetBet, toCall: toCallBefore, potBefore,
       betBefore: oldBet, stackBefore: player.chips + paidAmount
     });
     prunePending();
     state.currentActor = null;
+  }
+
+  function appendActionLog(player, action, details = {}) {
+    state.actionLog.push({
+      order: state.actionLog.length, street: state.street, seat: player.seat, playerId: player.id,
+      position: player.position, playerName: player.human ? '' : player.name, human: player.human,
+      action, board: state.board.map(cardText), ...details
+    });
+  }
+
+  function recordTrainingAction(player, action, target) {
+    const toCall = Math.max(0, state.currentBet - player.streetBet);
+    const maximum = player.streetBet + player.chips;
+    let total = player.streetBet;
+    let paid = 0;
+    if (action === 'call') {
+      paid = Math.min(player.chips, toCall);
+      total += paid;
+    } else if (action === 'bet' || action === 'raise') {
+      total = clamp(roundChip(target), player.streetBet, maximum);
+      paid = total - player.streetBet;
+    }
+    appendActionLog(player, action, {
+      amount: paid, target: total, toCall, potBefore: sumPot(),
+      betBefore: state.currentBet, stackBefore: player.chips, trainingOnly: true
+    });
   }
 
   function recordHumanDecision(action, target, benchmark) {
@@ -1654,6 +1768,7 @@
     recordHumanDecision(action, target, benchmark);
     state.humanTurn = false;
     if (state.mode !== 'full') {
+      recordTrainingAction(player, state.currentReview.actionKey, target);
       finishTrainingSpot(state.mode === 'preflop' ? 'result.preflopModeDone' : 'result.postflopModeDone');
       return;
     }

@@ -371,6 +371,15 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outl
 .history-entry-heading strong { flex: 0 0 auto; color: var(--text); font-size: 11px; font-variant-numeric: tabular-nums; }
 .history-cards { margin-top: 4px; color: #e7eee4; font-size: 12px; font-weight: 700; }
 .history-result { margin-top: 2px; color: var(--muted); font-size: 10px; }
+.history-actions { margin-top: 7px; border-top: 1px solid #ffffff12; color: var(--text); }
+.history-actions summary { padding-top: 7px; color: var(--lime); cursor: pointer; font-size: 11px; font-weight: 700; }
+.history-street { margin: 8px 0 0 2px; padding-left: 8px; border-left: 2px solid #536a56; }
+.history-street-heading { color: #dce8d8; font-size: 10px; font-weight: 800; }
+.history-action-rows { margin-top: 4px; display: grid; gap: 3px; }
+.history-action-row { display: grid; grid-template-columns: minmax(92px, .8fr) minmax(0, 1.2fr); gap: 8px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+.history-action-player { min-width: 0; color: #e0e8df; overflow-wrap: anywhere; }
+.history-action-label { min-width: 0; color: #c9d5c7; overflow-wrap: anywhere; }
+.history-action-missing { margin-top: 6px; color: var(--muted); font-size: 10px; }
 .history-empty { color: var(--muted); font-size: 11px; text-align: center; }
 
 @media (max-width: 1050px) {
