@@ -9,11 +9,11 @@ back_to_home: true
   <ul class="news-timeline">
     <li>
       <time class="news-date" datetime="2024-04">Apr 2024</time>
-      <div class="news-entry"><strong>Machine Learning Engineer</strong><p>Joined TikTok's E-commerce Search team, working on retrieval and relevance models.</p></div>
+      <div class="news-entry"><strong>Machine Learning Engineer</strong><p>Joined an E-commerce Search team, working on retrieval and relevance models.</p></div>
     </li>
     <li>
       <span class="news-date">Sep-Nov 2023</span>
-      <div class="news-entry"><strong>Machine Learning Engineer Intern</strong><p>TikTok Infrastructure team.</p></div>
+      <div class="news-entry"><strong>Machine Learning Engineer Intern</strong><p>Infrastructure engineering team.</p></div>
     </li>
     <li>
       <time class="news-date" datetime="2022-08">Aug 2022</time>

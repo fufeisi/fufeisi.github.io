@@ -8,19 +8,29 @@ $muted: #617278
 .content-page
   max-width: 64rem
 
+.resource-section
+  margin: 1.75rem 0 0
+
+.resource-section + .resource-section
+  margin-top: 2rem
+
+.resource-section > h2
+  margin: 0 0 0.75rem
+  font-size: 1.2rem
+
 .resource-grid
   display: grid
-  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr))
-  gap: 1rem
-  margin: 1.75rem 0 0
+  grid-template-columns: 1fr
+  gap: 0.65rem
 
 .resource-card
   box-sizing: border-box
   display: flex
-  min-height: 0
-  flex-direction: column
-  align-items: flex-start
-  padding: 1.35rem
+  min-height: 4.5rem
+  align-items: center
+  justify-content: space-between
+  gap: 1rem
+  padding: 0.7rem 1rem
   border: 1px solid $line
   border-top: 3px solid $teal
   border-radius: 4px
@@ -33,21 +43,20 @@ $muted: #617278
   letter-spacing: 0.04em
   text-transform: uppercase
 
-.resource-card h2
-  margin: 0.7rem 0 0.45rem
-  font-size: 1.25rem
+.resource-card h3
+  min-width: 0
+  margin: 0
+  font-size: 1.15rem
 
-.resource-card p
-  margin: 0 0 1.1rem
-  text-align: left
-  line-height: 1.65
+.resource-card strong
+  font-weight: 700
 
 .resource-card-link
   display: inline-flex
   min-height: 2.75rem
   align-items: center
   gap: 0.45rem
-  margin-top: 0.4rem
+  margin-top: 0
   padding: 0 1rem
   border-radius: 4px
   background: $teal
@@ -78,9 +87,18 @@ $muted: #617278
 
 @media (max-width: 40rem)
   .resource-grid
-    grid-template-columns: 1fr
     margin-top: 1.25rem
 
   .resource-card
-    min-height: 0
-    padding: 1.1rem
+    min-height: 4rem
+    gap: 0.65rem
+    padding: 0.65rem 0.75rem
+
+  .resource-card h3
+    font-size: 1rem
+
+  .resource-card-link
+    min-height: 2.5rem
+    gap: 0.3rem
+    padding: 0 0.7rem
+    font-size: 0.88rem

@@ -1,0 +1,297 @@
+---
+---
+
+$teal: #11877f
+$teal-dark: #0b625c
+$coral: #bd6048
+$ink: #252a2b
+$muted: #647174
+$line: #d7e0df
+
+.relevance-explainer
+  max-width: 64rem
+
+.relevance-demo
+  margin: 1.5rem 0 1rem
+  padding: 1.2rem 0 1.35rem
+  border-top: 1px solid $line
+  border-bottom: 1px solid $line
+
+.demo-kicker
+  margin: 0 0 0.25rem
+  color: $muted
+  font-size: 0.82rem
+  font-weight: 600
+  text-transform: uppercase
+
+.relevance-search
+  display: flex
+  max-width: 42rem
+  min-height: 3.25rem
+  align-items: center
+  gap: 0.75rem
+  padding: 0 0.9rem 0 1rem
+  border: 1px solid #bdc9c8
+  border-radius: 5px
+  background: #fff
+  box-shadow: 0 1px 2px rgba(37, 42, 43, 0.05)
+
+.relevance-search input
+  width: 100%
+  min-width: 0
+  margin: 0
+  padding: 0
+  border: 0
+  outline: 0
+  background: transparent
+  color: $ink
+  font: inherit
+  font-size: 1.05rem
+
+.relevance-search input::-webkit-search-cancel-button
+  display: none
+
+.search-icon
+  position: relative
+  flex: 0 0 1rem
+  width: 1rem
+  height: 1rem
+  border: 2px solid $teal-dark
+  border-radius: 50%
+
+.search-icon::after
+  position: absolute
+  right: -0.34rem
+  bottom: -0.2rem
+  width: 0.45rem
+  height: 2px
+  background: $teal-dark
+  content: ""
+  transform: rotate(45deg)
+  transform-origin: left center
+
+.relevance-intro
+  max-width: 68ch
+  margin: 1.5rem 0 1rem
+
+.relevance-intro h2
+  margin: 0 0 0.35rem
+  font-size: 1.2rem
+
+.relevance-intro p
+  margin: 0
+  line-height: 1.5
+
+.relevance-switch
+  margin: 1.2rem 0 0.9rem
+  padding: 0
+  border: 0
+
+.relevance-switch legend
+  margin-bottom: 0.4rem
+  padding: 0
+  color: $muted
+  font-size: 0.8rem
+  font-weight: 600
+
+.mode-options
+  display: inline-grid
+  grid-template-columns: repeat(2, minmax(0, 1fr))
+  gap: 3px
+  padding: 3px
+  border: 1px solid $line
+  border-radius: 5px
+  background: #f3f6f5
+
+.mode-option
+  position: relative
+  display: flex
+  min-height: 2.55rem
+  align-items: center
+  justify-content: center
+  padding: 0 0.9rem
+  border-radius: 3px
+  color: $muted
+  cursor: pointer
+  font-size: 0.9rem
+  font-weight: 600
+
+.mode-option input
+  position: absolute
+  width: 1px
+  height: 1px
+  overflow: hidden
+  clip: rect(0, 0, 0, 0)
+  white-space: nowrap
+  clip-path: inset(50%)
+
+.mode-option:has(input:checked)
+  background: $teal
+  color: #fff
+
+.mode-option:focus-within
+  outline: 2px solid $coral
+  outline-offset: 2px
+
+.relevance-summary
+  min-height: 1.5rem
+  margin: 0.8rem 0 1.1rem
+  color: $muted
+  font-size: 0.9rem
+  line-height: 1.45
+
+.results-heading
+  display: flex
+  flex-wrap: wrap
+  align-items: baseline
+  justify-content: space-between
+  gap: 0.4rem 1rem
+  margin-bottom: 0.7rem
+  padding-top: 0.85rem
+  border-top: 1px solid $line
+
+.results-heading h2
+  margin: 0
+  font-size: 1.05rem
+
+.results-count
+  color: $muted
+  font-size: 0.82rem
+
+.relevance-products
+  display: grid
+  grid-template-columns: repeat(3, minmax(0, 1fr))
+  gap: 0.7rem
+
+.relevance-product
+  min-width: 0
+  overflow: hidden
+  border: 1px solid $line
+  border-radius: 5px
+  background: #fff
+
+.relevance-product[hidden]
+  display: none
+
+.relevance-photo
+  position: relative
+  overflow: hidden
+  aspect-ratio: 1
+  background: #e8e9e8
+
+.relevance-photo img
+  position: absolute
+  top: 0
+  left: 0
+  width: 300%
+  max-width: none
+  height: 200%
+  margin: 0
+  border-radius: 0
+  object-fit: fill
+
+.relevance-photo[data-photo="0"] img
+  transform: translate(0, 0)
+
+.relevance-photo[data-photo="1"] img
+  transform: translate(-33.3333%, 0)
+
+.relevance-photo[data-photo="2"] img
+  transform: translate(-66.6667%, 0)
+
+.relevance-photo[data-photo="3"] img
+  transform: translate(0, -50%)
+
+.relevance-photo[data-photo="4"] img
+  transform: translate(-33.3333%, -50%)
+
+.relevance-details
+  min-height: 4.2rem
+  padding: 0.6rem 0.65rem
+
+.relevance-details h3
+  margin: 0 0 0.45rem
+  font-size: 0.9rem
+  line-height: 1.3
+
+.product-meta
+  display: flex
+  flex-wrap: wrap
+  align-items: center
+  gap: 0.35rem 0.5rem
+  color: $muted
+  font-size: 0.74rem
+
+.signal-popular,
+.signal-match
+  display: inline-flex
+  align-items: center
+  min-height: 1.2rem
+  padding: 0 0.35rem
+  border-radius: 3px
+  font-size: 0.68rem
+  font-weight: 700
+
+.signal-popular
+  background: #faeee9
+  color: #9c472f
+
+.signal-match
+  background: #e5f3f0
+  color: $teal-dark
+
+@media (prefers-color-scheme: dark)
+  .relevance-demo
+    border-color: #414e52
+
+  .demo-kicker,
+  .relevance-switch legend,
+  .relevance-summary,
+  .results-count,
+  .product-meta
+    color: #b6c3c5
+
+  .relevance-search
+    border-color: #526365
+    background: #1f292b
+
+  .relevance-search input
+    color: #edf2f2
+
+  .mode-options
+    border-color: #526365
+    background: #263235
+
+  .mode-option
+    color: #c0cbcd
+
+  .mode-option:has(input:checked)
+    background: #14766f
+    color: #fff
+
+  .results-heading
+    border-color: #414e52
+
+  .relevance-product
+    border-color: #414e52
+    background: #252f33
+
+  .signal-popular
+    background: #49322e
+    color: #f0ad98
+
+  .signal-match
+    background: #203c39
+    color: #8bd6cc
+
+@media (max-width: 40rem)
+  .relevance-products
+    grid-template-columns: repeat(2, minmax(0, 1fr))
+
+  .mode-option
+    padding: 0 0.65rem
+    font-size: 0.82rem
+
+@media (prefers-reduced-motion: reduce)
+  .relevance-product
+    transition: none
