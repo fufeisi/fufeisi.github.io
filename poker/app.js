@@ -35,8 +35,7 @@
     sessionResult: byId('session-result'), nodeDetails: byId('node-details'),
     decisionBox: byId('decision-box'), strategyTitle: byId('strategy-title'),
     strategyList: byId('strategy-list'), feedbackState: byId('feedback-state'),
-    footerNote: byId('footer-note'), serviceError: byId('service-error'), retryAI: byId('retry-ai'),
-    deviceId: byId('device-id'),
+    footerNote: byId('footer-note'), deviceId: byId('device-id'),
     historyCount: byId('history-count'), historyNet: byId('history-net'),
     historyMatch: byId('history-match'), historyList: byId('history-list')
   };
@@ -45,7 +44,6 @@
     mode: 'full', handNumber: 0, players: [], deck: [], board: [], street: 'preflop',
     currentBet: 0, minRaise: 1, pending: [], actedSinceFullRaise: new Set(),
     buttonSeat: 0, currentActor: null, humanTurn: false, handComplete: false, handEnded: false,
-    aiWaiting: false, aiError: false,
     currentReview: null, resultText: '', actionLog: [], playerStats: {},
     decisions: 0, matchedFrequencyTotal: 0, sessionNet: 0, completedHands: 0,
     lastAggressor: null, spotDecisionOnly: false, handStartStack: 100,
@@ -54,8 +52,6 @@
   };
 
   const deviceId = loadOrCreateDeviceId();
-  const pageSessionId = loadOrCreatePageSessionId();
-  const fullhouseApiBase = String(window.FULLHOUSE_API_BASE || '').replace(/\/+$/, '');
   let historyItems = loadHistory();
   let historyExpiryTimer = null;
 
@@ -76,19 +72,6 @@
       if (stored) return stored;
       const created = makeDeviceId();
       window.localStorage.setItem(DEVICE_ID_KEY, created);
-      return created;
-    } catch (_) {
-      return makeDeviceId();
-    }
-  }
-
-  function loadOrCreatePageSessionId() {
-    const key = 'riverlab:poker:session-id:v1';
-    try {
-      const stored = window.sessionStorage.getItem(key);
-      if (stored) return stored;
-      const created = makeDeviceId();
-      window.sessionStorage.setItem(key, created);
       return created;
     } catch (_) {
       return makeDeviceId();
@@ -326,8 +309,6 @@
     state.actedSinceFullRaise = new Set();
     state.currentActor = null;
     state.humanTurn = false;
-    state.aiWaiting = false;
-    state.aiError = false;
     state.handComplete = false;
     state.handEnded = false;
     state.currentReview = null;
@@ -427,7 +408,7 @@
     render();
   }
 
-  async function progress(handId) {
+  function progress(handId) {
     if (handId !== state.handNumber || state.handComplete) return;
     prunePending();
     if (alivePlayers().length <= 1) { awardUncontested(); return; }
@@ -437,7 +418,7 @@
         return;
       }
       nextStreet();
-      if (!state.handComplete && state.pending.length > 0) await progress(handId);
+      if (!state.handComplete && state.pending.length > 0) progress(handId);
       return;
     }
 
@@ -449,24 +430,12 @@
       return;
     }
     state.humanTurn = false;
-    state.aiError = false;
-    state.aiWaiting = true;
     render();
-    window.setTimeout(async () => {
+    window.setTimeout(() => {
       if (handId !== state.handNumber || state.handComplete || state.currentActor !== player.id) return;
-      try {
-        const choice = await chooseBotAction(player);
-        if (handId !== state.handNumber || state.handComplete || state.currentActor !== player.id) return;
-        state.aiWaiting = false;
-        state.aiError = false;
-        applyAction(player, choice.action, choice.target);
-        await progress(handId);
-      } catch (_) {
-        if (handId !== state.handNumber || state.handComplete || state.currentActor !== player.id) return;
-        state.aiWaiting = false;
-        state.aiError = true;
-        render();
-      }
+      const choice = chooseBotAction(player);
+      applyAction(player, choice.action, choice.target);
+      progress(handId);
     }, 330 + randomInt(220));
   }
 
@@ -1365,76 +1334,13 @@
     return action;
   }
 
-  function botCardCode(card) {
-    const rank = rankText(card.rank);
-    return `${rank === '10' ? 'T' : rank}${card.suit}`;
-  }
-
-  function fullhouseRequest(player) {
-    const toCall = currentToCall(player);
-    const canRaise = !state.actedSinceFullRaise.has(player.id)
-      && player.chips > toCall + 0.001
-      && player.streetBet + player.chips > state.currentBet + 0.001;
-    return {
-      session_id: pageSessionId,
-      hand_number: state.handNumber,
-      seat_to_act: player.seat,
-      street: state.street,
-      your_cards: player.cards.map(botCardCode),
-      community_cards: state.board.map(botCardCode),
-      current_bet: state.currentBet,
-      min_raise: state.minRaise,
-      pot: sumPot(),
-      can_raise: canRaise,
-      players: state.players.map((item) => ({
-        seat: item.seat,
-        chips: item.chips,
-        street_bet: item.streetBet,
-        folded: item.folded,
-        all_in: item.allIn
-      })),
-      action_log: state.actionLog.map((event) => ({
-        seat: event.seat,
-        street: event.street,
-        action: event.action,
-        amount: event.amount,
-        target: Number.isFinite(event.target) ? event.target : null
-      }))
-    };
-  }
-
-  async function chooseBotAction(player) {
-    if (!fullhouseApiBase) throw new Error('Fullhouse API 尚未配置');
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 120000);
-    let response;
-    try {
-      response = await fetch(`${fullhouseApiBase}/decide`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(fullhouseRequest(player)),
-        signal: controller.signal
-      });
-    } finally {
-      window.clearTimeout(timeout);
-    }
-    if (!response.ok) throw new Error(`Fullhouse API 返回 ${response.status}`);
-    const decision = await response.json();
-    const toCall = currentToCall(player);
-    const cap = player.streetBet + player.chips;
-    if (decision.action === 'fold') return { action: 'fold' };
-    if (decision.action === 'check') return { action: toCall > 0.001 ? 'fold' : 'check' };
-    if (decision.action === 'call') return { action: toCall > 0.001 ? 'call' : 'check' };
-    if (decision.action === 'bet' || decision.action === 'raise') {
-      const canRaise = !state.actedSinceFullRaise.has(player.id)
-        && player.chips > toCall + 0.001
-        && cap > state.currentBet + 0.001;
-      if (!canRaise) return { action: toCall > 0.001 ? 'call' : 'check' };
-      const minimum = state.currentBet > 0 ? state.currentBet + state.minRaise : 1;
-      const target = Math.min(cap, Math.max(minimum, roundChip(Number(decision.target) || minimum)));
-      return { action: state.currentBet > 0 ? 'raise' : 'bet', target };
-    }
-    throw new Error('Fullhouse API 返回了无法识别的行动');
+  function chooseBotAction(player) {
+    let action = state.street === 'preflop' ? decidePreflop(player) : fullhousePostflopAction(player);
+    if (state.street !== 'preflop') action = fullhouseNutValueSizing(player, action);
+    action = fullhouseMetacap(player, action);
+    if (!action) return state.currentBet > player.streetBet ? { action: 'call' } : { action: 'check' };
+    if (action.action === 'check' && state.currentBet > player.streetBet) return { action: 'fold' };
+    return action;
   }
 
   function actionName(action, target = 0) {
@@ -1724,11 +1630,8 @@
       ui.tableStatus.innerHTML = due > 0 ? `轮到你行动 · <strong>面对 ${fmt(due)} bb</strong>` : '轮到你行动 · <strong>可以过牌或下注</strong>';
     } else {
       const actor = state.players.find((player) => player.id === state.currentActor);
-      ui.tableStatus.innerHTML = actor
-        ? `${actor.name}${state.aiWaiting ? ' 正在请求 Fullhouse Bot…' : ' 正在行动…'}`
-        : '等待行动…';
+      ui.tableStatus.innerHTML = actor ? `${actor.name} 正在行动…` : '等待行动…';
     }
-    ui.serviceError.hidden = !state.aiError;
     ui.handCount.textContent = String(Math.max(1, state.handNumber)).padStart(2, '0');
     ui.accuracy.textContent = state.decisions ? `${Math.round(state.matchedFrequencyTotal / state.decisions)}%` : '—';
     ui.sessionResult.textContent = state.mode === 'full' ? `${state.sessionNet > 0 ? '+' : ''}${fmt(state.sessionNet)} bb` : '训练点';
@@ -1774,11 +1677,6 @@
     ui.pass.addEventListener('click', () => humanAction('check'));
     ui.call.addEventListener('click', () => humanAction('call'));
     ui.raise.addEventListener('click', () => humanAction(state.currentBet > 0 ? 'raise' : 'bet'));
-    ui.retryAI.addEventListener('click', () => {
-      if (!state.aiError || state.handComplete) return;
-      state.aiError = false;
-      void progress(state.handNumber);
-    });
     document.querySelectorAll('.quick-size').forEach((button) => button.addEventListener('click', () => setQuickSize(button.dataset.size)));
     ui.raiseInput.addEventListener('change', () => {
       ui.raiseInput.value = String(clamp(roundChip(Number(ui.raiseInput.value) || 0), Number(ui.raiseInput.min), Number(ui.raiseInput.max)));

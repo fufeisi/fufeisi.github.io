@@ -8,14 +8,6 @@ https://github.com/lucashsu007-create/fullhouse-hackathon-write-up-repo
 
 The original project is licensed under the MIT License.
 
-The original Fullhouse Bot v16_squeeze_C_metacap Python strategy is vendored at
-server/vendor/fullhouse_bot.py and is executed by server/app.py. It is from the
-same upstream project and is licensed under the MIT License. The full upstream
-license text is included at server/vendor/FULLHOUSE-MIT-LICENSE.txt.
-
-Upstream bot source:
-https://github.com/lucashsu007-create/fullhouse-hackathon-write-up-repo/blob/main/hero_bots/bot_v16_squeeze_C_metacap/bot.py
-
 MIT License
 
 Copyright (c) 2026 lucashsu007-create
