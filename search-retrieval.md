@@ -22,7 +22,7 @@ search_retrieval: true
       <li><span class="flow-index">01</span><strong>Catalog</strong><small>6 demo · ~10M real</small></li>
       <li><span class="flow-index">02</span><strong>Retrieval</strong><small>5 demo · ~1K · ~30 ms</small></li>
       <li><span class="flow-index">03</span><strong>Ranking</strong><small>~1K → top 100</small></li>
-      <li><span class="flow-index">04</span><strong>Results</strong><small>Top 100 · ~100 ms total</small></li>
+      <li><span class="flow-index">04</span><strong>Results</strong><small>Top 100 · ~100 ms / search</small></li>
     </ol>
 
     <div class="candidate-heading">
@@ -84,7 +84,7 @@ search_retrieval: true
           <span class="merge-arrow" aria-hidden="true">→</span>
           <div class="shortlist-mark"><span class="shortlist-dots" aria-hidden="true"></span><strong>~1K</strong><small>to ranking</small></div>
         </div>
-        <div class="visual-stat"><span>Full search, end to end</span><strong>~100 ms total</strong></div>
+        <div class="visual-stat"><span>Full search, end to end</span><strong>~100 ms / search</strong></div>
       </div>
     </div>
   </section>
